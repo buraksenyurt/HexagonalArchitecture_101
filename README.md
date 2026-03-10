@@ -2,6 +2,21 @@
 
 Hexagonal yazılım mimarisinin prensiplerini basit senaryolar üzerinden uygulamalı olarak öğrenmeye çalıştığım proje ve kodlarının yer aldığı repodur.
 
+- [İçerik](#hexagonal-architecture-101)
+  - [Mimari Hakkında Genel Bilgiler](#mimari-hakkında-genel-bilgiler)
+  - [Senaryo](#senaryo)
+  - [Geliştirme Aşamaları](#geliştirme-aşamaları)
+    - [1. Solution ve Proje Yapısının İnşa Edilmesi](#1-solution-ve-proje-yapısının-inşa-edilmesi)
+    - [2. Domain Modelinin Oluşturulması](#2-domain-modelinin-oluşturulması)
+    - [3. Portların Tanımlanması](#3-portların-tanımlanması)
+    - [4. Uygulama Servisi ve Use Case'in Tanımlanması](#4-uygulama-servisi-ve-use-casein-tanımlanması)
+    - [5. Inbound Adaptörün Yazılması ve Entegrasyonu](#5-inbound-adaptörün-yazılması-ve-entegrasyonu)
+  - [Yeni Deneyimler](#yeni-deneyimler)
+  - [Entity Framework Tabanlı Yeni Adapter Eklenmesi](#entity-framework-tabanlı-yeni-adapter-eklenmesi)
+  - [Farklı Bir Dış Sistem Entegrasyonu: Console Uygulaması](#farklı-bir-dış-sistem-entegrasyonu-console-uygulaması)
+
+## Mimari Hakkında Genel Bilgiler
+
 Bu mimari bazı kaynaklarda "Ports and Adapters" olarak da geçiyor. Orijini [Alistair Cockburn'ın şuradaki](https://alistair.cockburn.us/hexagonal-architecture) yazısına dayanıyor. Kaynaklara göre **2005** yılında beri hayatımızda olan bir tasarım. Tabii işin temelinde çok temel yazılım kavramları ve ilkeleri var. Her şey uygulama domain'i içerisindeki iş kurallarının dış dünyadan tamamen izole edilebilmesi fikrine dayanıyor. Bu zaten bir çok modern mimari yaklaşımın ana noktalarından birisi ancak uygulama biçimleri farklılık gösterebiliyor.
 
 Sonuçta gevşek bağlılık *(Loose Coupling)*, sorumlulukların doğru ayrılması *(Separation of Concerns)*, bağımlılıkların tersine çevrilmesi *(Inversion of Control)*, bağımlılıkların dışarıdan sağlanması *(Dependency Injection)*, zengin nesneler *(rich entity - yazılım prensibi diyemesek de DDD'nin izlerinden birisi olarak mimaride yer bulabilir)* kullanılması gibi temel prensipler üzerine kurulu bir mimari. Bu prensipler sayesinde uygulama domain'i içerisindeki iş kuralları, dış dünyadan gelen veri kaynaklarından, kullanıcı arayüzünden, diğer sistemlerle entegrasyonlardan tamamen izole edilebilmektedir. Böylece uygulama domain'i içerisindeki kodun test edilebilirliği, sürdürülebilirliği ve esnekliği de artmakta.
@@ -22,7 +37,7 @@ Kısır bir senaryo ile başlayalım. Stok takibi yapmak istediğimiz ürünler 
 
 ## Geliştirme Aşamaları
 
-### 1. Solution ve Proje Yapısının İnşa Edilmesi
+### 1. Solution ve Proje Yapısının inşa Edilmesi
 
 Solution yapısını aşağıdaki gibi oluşturabiliriz.
 
@@ -253,6 +268,175 @@ En azından aşağıdaki ekran görüntüsünde olduğu gibi bir yanıt almamız
 
 ## Yeni Deneyimler
 
-Kaba taslak mimariyi uyguladık gibi görünüyor. Şimdi mimarimizin merkezine hiç dokunmadan bir değişiklik yapmaya çalışalım. Örneğin veritabanı tarafında **Postgresql** kullanan bir **Outbound Adapter** eklemeye çalışalım.
+Kaba taslak mimariyi uyguladık gibi görünüyor. Şimdi farklı senaryolar ile devam edelim.
+
+- [x] Örneğin veritabanı tarafında **Postgresql** kullanan bir **Outbound Adapter** eklemeye çalışalım. **Entity Framework** olur ya da **Dapper** olur. *(Yeni adaptör ekleme senaryosu)*
+- Yeni bir fonksiyonellik ilave edelim. **ID** değerinden ürün bilgisini çeken işlevselliği dahil edebiliriz. *(Yeni fonksiyonellik ekleme senaryosu)*
+- Farklı bir dış sistemi dahil edelim. Söz gelimi bir **Console** uygulaması. *(Console uygulaması Web Api'yi kullanmayacak elbette)*
+- Biraz da test ekleyelim ve test edilebilirliği görmeye çalışalım. *(Test ekleme senaryosu)*
+
+## Entity Framework Tabanlı Yeni Adapter Eklenmesi
+
+Adettendir her repomda olduğu gibi veritabanı söz konusu ise genellikle bir **docker-compose** dosyasında **postgresql** ve **pg-admin** servislerini konuşlandırarak başlarım. Kendi sistemimdeki docker-compose içeriği aşağıdaki gibi.
+
+```yml
+services:
+
+  postgres:
+    image: postgres:latest
+    container_name: hex-postgres
+    environment:
+      POSTGRES_USER: johndoe
+      POSTGRES_PASSWORD: somew0rds
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgres/data
+    networks:
+      - hex-network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: hex-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: scoth@tiger.com
+      PGADMIN_DEFAULT_PASSWORD: 123456
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - hex-network
+
+volumes:
+  postgres_data:
+
+networks:
+  hex-network:
+    driver: bridge
+```
+
+Container'ları ayağa kaldırmak için;
+
+```bash
+docker-compose up -d
+```
+
+Şimdi de **HexagonalAdventure.Adapters.Out.EF** isimli yeni bir **class library** oluşturarak devam edebiliriz. Bu projeyi de **Adapters** isimli solution folder altında oluşturursak, iskelete baktığımızda da görsel olarak daha anlaşılır olacaktır. Burada **Entity Framework** kullanacağımız için bir **DbContext** türevine de ihtiyacımız olacak. Tabii gerekli **nuget** paketlerini de eklemeyi unutmayalım. **Microsoft.EntityFrameworkCore** ve **Microsoft.EntityFrameworkCore.Design**. Şimdi isminden şu an için şüphe ettiğim **DeppoDbContext** sınıfını yazarak devam edelim.
+
+```csharp
+using HexagonalAdventure.Domain;
+using Microsoft.EntityFrameworkCore;
+
+namespace HexagonalAdventure.Adapters.Out.EF;
+
+public class DeppoDbContext(DbContextOptions<DeppoDbContext> options)
+    : DbContext(options)
+{
+    public DbSet<Product> Products { get; set; }
+}
+```
+
+Oldukça klasik bir **DbContext** sınıfı yazdık. İçinde sadece ürünler için bir **DbSet** özelliği yer alıyor. Şimdi de **IProductRepository** arayüzünü implemente eden **EfProductRepository** sınıfını yazalım. Hatırlayacağınız üzere **IProductRepository**, uygulama katmanında bir **outbound** port olarak tanımlanmıştı. Şimdi bu portu somut olarak uygulayan bir adapter yazacağız. Örneğin şöyle bir sınıf olabilir.
+
+```csharp
+using HexagonalAdventure.Application.Ports.Outbound;
+using HexagonalAdventure.Domain;
+
+namespace HexagonalAdventure.Adapters.Out.EF;
+
+public class EfProductRepository(DeppoDbContext deppoDbContext)
+    : IProductRepository
+{
+    public void AddProduct(Product product)
+    {
+        deppoDbContext.Products.Add(product);
+        deppoDbContext.SaveChanges();
+    }
+
+    public Product GetById(Guid id)
+    {
+        return deppoDbContext.Products.FirstOrDefault(p => p.Id == id);
+    }
+}
+```
+
+Artık Web api açısından olaya bakabiliriz. Hatırlarsanız program.cs sınıfında **IProductRepository**'nin hangi somut sınıf tarafından implemente edileceğini tanımlamamız gerekiyordu ve ilk örneğimizde **in-memory** çalışan bir repository sınıfını kullanmıştık. Web api'nin yeni adaptör ile çalışması için tek yapmamız gereken Dependency Injection Container'daki bağımlılık tanımını değiştirmekten ibarettir. Aynen aşağıda görüldüğü gibi *(Tabii burada Postgresql için de bazı ayarlar eklememiz gerekiyor. Sonuçta runtime Postgresql destekleyen bir EF kütüphanesine ihtiyaç duyacak)*
+
+```csharp
+using HexagonalAdventure.Adapters.Out.EF;
+// using HexagonalAdventure.Adapters.Out.InMemory;
+using HexagonalAdventure.Application.Ports.Inbound;
+using HexagonalAdventure.Application.Ports.Outbound;
+using HexagonalAdventure.Application.Services;
+using Microsoft.EntityFrameworkCore;
+
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddControllers();
+
+// EF Postgresql kullanımı için de middleware'e bir şeyler eklememiz lazım
+builder.Services.AddDbContext<DeppoDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DeppoConnectionString")));
+
+// Dependency Injection tanımlamaları
+// builder.Services.AddSingleton<IProductRepository, InMemoryProdutRepository>(); // Tüm uygulama boyunca tek bir instance kullanılır
+
+// EF Core kullanan yeni outbound port implementasyonu
+builder.Services.AddScoped<IProductRepository, EfProductRepository>();
+builder.Services.AddScoped<IProductService, ProductService>();
+
+builder.Services.AddOpenApi();
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
+
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.MapControllers();
+
+await app.RunAsync();
+```
+
+Tabii burada bazı konfigürasyonları da yapmamız gerekiyor. Örneğin **appsettings.json** dosyasına Postgresql bağlantı dizesini eklememiz gerekiyor. Aşağıdaki gibi bir içerik olabilir.
+
+```json
+{
+  "ConnectionStrings": {
+    "DeppoConnectionString": "Host=localhost;Port=5432;Database=deppo;Username=johndoe;Password=somew0rds"
+  }
+}
+```
+
+Ayrıca yine gelenek olduğu üzere bir **migration** planı hazırlayıp çalıştıralım. Bunun için **dotnet** komut satırı aracını aşağıdaki gibi kullanabiliriz.
+
+```bash
+# Sistemde ef tool'unun yüklü olması gerekiyor. Eğer yüklü değilse aşağıdaki komutla yükleyebiliriz.
+dotnet tool install --global dotnet-ef
+
+# Varsa da güncellemek gerekebilir. O zaman da şu komut işe yarar
+dotnet tool update --global dotnet-ef
+
+# Migration planının hazırlanması
+dotnet ef migrations add InitialCreate --project HexagonalAdventure.Adapters.Out.EF --startup-project HexagonalAdventure.Adapters.In.WebApi
+## Yukarıdaki komut için WebApi projesinin çalışıyor olması lazım
+
+# Migration planının işletilmesi
+dotnet ef database update --project HexagonalAdventure.Adapters.Out.EF --startup-project HexagonalAdventure.Adapters.In.WebApi
+```
+
+Eğer her şey yolunda gittiyse aşağıdaki ekran görüntüsünde olduğu bu sefer ürün bilgisinin veritabanına kaydedildiğini görebiliriz.
+
+![Http Runtime Test 2](./images/HttpTest_01.png)
+
+Dikkat edileceği üzere sisteme yeni bir adapter ekledik fakat uygulama domain'ine hiç dokunmadık. Dış sistem entegrasyonunda sadece yeni eklediğimiz adapter'ı var olan port'a bağladık. Böylece uygulama domain'inin dış dünyaya olan bağımlılığını tamamen ortadan kaldırmış olduk.
+
+## Farklı Bir Dış Sistem Entegrasyonu: Console Uygulaması
+
+Senaryomuzu şimdi biraz daha genişletelim ve farklı bir dış sistem entegrasyonu yapalım. Web Api'ye ek olarak bir de Console uygulaması geliştirelim. Console uygulaması Web Api'yi kullanmayacak elbette. Doğrudan uygulama servislerini kullanarak çalışacak. Böylece farklı bir adaptörün var olan port'a nasıl bağlandığını göreceğiz.
 
 DEVAM EDECEK...
