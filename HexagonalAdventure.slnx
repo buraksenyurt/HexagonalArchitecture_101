@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/Adapters/">
+    <Project Path="HexagonalAdventure.Adapters.In.WebApi/HexagonalAdventure.Adapters.In.WebApi.csproj" Id="c10198ad-194e-46d3-b4c7-bbe1d9f6163c" />
+    <Project Path="HexagonalAdventure.Adapters.Out.InMemory/HexagonalAdventure.Adapters.Out.InMemory.csproj" Id="f6fba077-969b-403e-9fe1-13448c4aa8d5" />
+  </Folder>
+  <Folder Name="/Application/">
+    <Project Path="HexagonalAdventure.Application/HexagonalAdventure.Application.csproj" Id="20236bdd-61df-491c-8bc2-59a76c6cec63" />
+  </Folder>
+  <Folder Name="/Core/">
+    <Project Path="HexagonalAdventure.Domain/HexagonalAdventure.Domain.csproj" Id="10dbe892-62ea-45d5-b8cb-a31132299653" />
+  </Folder>
+</Solution>
