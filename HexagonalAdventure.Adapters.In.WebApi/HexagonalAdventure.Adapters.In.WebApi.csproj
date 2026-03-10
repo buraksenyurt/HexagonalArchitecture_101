@@ -8,9 +8,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\HexagonalAdventure.Adapters.Out.EF\HexagonalAdventure.Adapters.Out.EF.csproj" />
     <ProjectReference Include="..\HexagonalAdventure.Adapters.Out.InMemory\HexagonalAdventure.Adapters.Out.InMemory.csproj" />
     <ProjectReference Include="..\HexagonalAdventure.Application\HexagonalAdventure.Application.csproj" />
   </ItemGroup>

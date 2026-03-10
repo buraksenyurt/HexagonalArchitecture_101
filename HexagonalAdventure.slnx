@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/Adapters/">
     <Project Path="HexagonalAdventure.Adapters.In.WebApi/HexagonalAdventure.Adapters.In.WebApi.csproj" Id="c10198ad-194e-46d3-b4c7-bbe1d9f6163c" />
+    <Project Path="HexagonalAdventure.Adapters.Out.EF/HexagonalAdventure.Adapters.Out.EF.csproj" Id="eaf2ce3d-d86b-4478-aa97-b0d7f6dcdc25" />
     <Project Path="HexagonalAdventure.Adapters.Out.InMemory/HexagonalAdventure.Adapters.Out.InMemory.csproj" Id="f6fba077-969b-403e-9fe1-13448c4aa8d5" />
   </Folder>
   <Folder Name="/Application/">
