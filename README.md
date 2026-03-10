@@ -437,6 +437,49 @@ Dikkat edileceği üzere sisteme yeni bir adapter ekledik fakat uygulama domain'
 
 ## Farklı Bir Dış Sistem Entegrasyonu: Console Uygulaması
 
-Senaryomuzu şimdi biraz daha genişletelim ve farklı bir dış sistem entegrasyonu yapalım. Web Api'ye ek olarak bir de Console uygulaması geliştirelim. Console uygulaması Web Api'yi kullanmayacak elbette. Doğrudan uygulama servislerini kullanarak çalışacak. Böylece farklı bir adaptörün var olan port'a nasıl bağlandığını göreceğiz.
+Senaryomuzu şimdi biraz daha genişletelim ve farklı bir dış sistem entegrasyonu yapalım. Web Api'ye ek olarak bir de **Console** uygulaması geliştirelim. Console uygulaması Web Api'yi kullanmayacak elbette. Doğrudan uygulama servislerini kullanarak çalışacak. Böylece farklı bir adaptörün var olan port'a nasıl bağlandığını göreceğiz. Bir başka deyişle console uygulaması farklı bir **Inbound Adapter** olacak. Console uygulamasında da dikkate almamız gereken şeyler var. Örneğin burada da bir **Composition Root** kullanmamız mimariye uygunluk açısından önemli olacak. Yani bir Depdendency Injection Container hazırlayıp **port** ve **adaptörleri** birbirine bağlayacağız.
+
+Şimdi Solution'daki **Adapters** klasöründe **HexagonalAdventure.Adapters.In.ConsoleHexagonalAdventure.Adapters.In.Console** isimli yeni bir Console projesi oluşturup gerekli kütüphaneleri ekledikten sonra aşağıdaki program kodları ile devam edelim.
+
+```csharp
+using HexagonalAdventure.Adapters.Out.InMemory;
+using HexagonalAdventure.Application.Ports.Inbound;
+using HexagonalAdventure.Application.Ports.Outbound;
+using HexagonalAdventure.Application.Services;
+using Microsoft.Extensions.DependencyInjection;
+
+var serviceProvider = new ServiceCollection()
+    .AddSingleton<IProductRepository, InMemoryProdutRepository>()
+    .AddScoped<IProductService, ProductService>()
+    .BuildServiceProvider();
+
+Console.WriteLine("Add a new product");
+
+Console.Write("Title: ");
+string title = Console.ReadLine();
+
+Console.Write("Price: ");
+decimal price = decimal.Parse(Console.ReadLine());
+
+Console.Write("Category: ");
+string category = Console.ReadLine();
+
+Console.Write("Stock: ");
+int stock = int.Parse(Console.ReadLine());
+
+var productService = serviceProvider.GetRequiredService<IProductService>();
+var newProductId = productService.CreateProduct(title, price, category, stock);
+
+Console.WriteLine("Product created with ID: " + newProductId);
+Console.ReadLine();
+```
+
+Console projesi sadece **Application** ve **InMemory Adapter** projelerini referans eder. API projesini veya doğrudan **Domain** projesini kullanmaz. Örneğin mümkün mertebe basit olması açısından console projesi **in-memory** veritabanı kullanacak şekilde tasarlanmıştır. Diğer yandan web api bağımlılığı olmadığı için bir network servis bağımlılığı da yoktur. Doğrudan uygulama katmanındaki **port'ları** ve gerekli dış adaptörü bir kompozisyon altında birleştirerek kullanır. Senaryonun bir özeti de şudur; Uygulamanın domain katmanına dokunmadan hem verinin yazıldığı yeri hemde geldiği yeri değiştirebildik.
+
+Tam şu anda **solution** içeriğine bakarsak aşağıdaki gibi bir iskelet oluştuğunu gözlemleyebiliriz.
+
+![Console Runtime](./images/ConsoleRuntime.png)
+
+todo@buraksenyurt Proje bağımlılıklarını gösteren bir diagram ekleyelim
 
 DEVAM EDECEK...
