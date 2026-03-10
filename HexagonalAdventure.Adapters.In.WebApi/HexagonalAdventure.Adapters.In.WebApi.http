@@ -1,6 +1,14 @@
 @HexagonalAdventure.Adapters.In.WebApi_HostAddress = http://localhost:5144
 
-GET {{HexagonalAdventure.Adapters.In.WebApi_HostAddress}}/api/
+POST {{HexagonalAdventure.Adapters.In.WebApi_HostAddress}}/api/products
+Content-Type: application/json
 Accept: application/json
+
+{  
+  "title": "Learning OCAML",
+  "category": "Book",
+  "price": 19.99,
+  "stock": 10
+}
 
 ###

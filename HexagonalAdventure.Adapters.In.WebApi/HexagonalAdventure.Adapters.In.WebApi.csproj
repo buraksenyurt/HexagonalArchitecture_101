@@ -11,7 +11,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
+    <ProjectReference Include="..\HexagonalAdventure.Adapters.Out.InMemory\HexagonalAdventure.Adapters.Out.InMemory.csproj" />
+    <ProjectReference Include="..\HexagonalAdventure.Application\HexagonalAdventure.Application.csproj" />
   </ItemGroup>
 
 </Project>

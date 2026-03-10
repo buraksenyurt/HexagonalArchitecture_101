@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\HexagonalAdventure.Application\HexagonalAdventure.Application.csproj" />
+    <ProjectReference Include="..\HexagonalAdventure.Domain\HexagonalAdventure.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

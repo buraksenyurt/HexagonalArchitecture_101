@@ -1,24 +1,26 @@
-namespace HexagonalAdventure.Adapters.In.WebApi;
+using HexagonalAdventure.Adapters.Out.InMemory;
+using HexagonalAdventure.Application.Ports.Inbound;
+using HexagonalAdventure.Application.Ports.Outbound;
+using HexagonalAdventure.Application.Services;
 
-public class Program
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddControllers();
+
+// Dependency Injection tanımlamaları
+builder.Services.AddSingleton<IProductRepository, InMemoryProdutRepository>(); // Tüm uygulama boyunca tek bir instance kullanılır
+builder.Services.AddScoped<IProductService, ProductService>();
+
+builder.Services.AddOpenApi();
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
 {
-    public static void Main(string[] args)
-    {
-        var builder = WebApplication.CreateBuilder(args);
-        builder.Services.AddControllers();
-        builder.Services.AddOpenApi();
-
-        var app = builder.Build();
-
-        if (app.Environment.IsDevelopment())
-        {
-            app.MapOpenApi();
-        }
-
-        app.UseHttpsRedirection();
-        app.UseAuthorization();
-        app.MapControllers();
-
-        app.Run();
-    }
+    app.MapOpenApi();
 }
+
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.MapControllers();
+
+await app.RunAsync();

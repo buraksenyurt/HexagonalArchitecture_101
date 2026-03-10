@@ -1,9 +1,11 @@
-﻿using HexagonalAdventure.Application.Ports.Outbound;
+﻿using HexagonalAdventure.Application.Ports.Inbound;
+using HexagonalAdventure.Application.Ports.Outbound;
 using HexagonalAdventure.Domain;
 
 namespace HexagonalAdventure.Application.Services;
 
 public class ProductService(IProductRepository productRepository)
+    : IProductService
 {
     private readonly IProductRepository _productRepository = productRepository;
 
