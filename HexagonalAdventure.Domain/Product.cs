@@ -8,6 +8,11 @@ public class Product
     public string Category { get; private set; } // Category ayrı bir entity olabilir, şimdilik string olarak bıraktım
     public int StockQuantity { get; private set; } // Sonrasında Value Object olarak refactor edilebilir
 
+    // EF Migration tool çalışırken parametresiz constructor'a ihtiyaç duyuyor, bu yüzden ekliyoruz.
+    public Product()
+    {
+        
+    }
     public Product(Guid id, string title, decimal listPrice, string category, int initialStock)
     {
         Id = id;
