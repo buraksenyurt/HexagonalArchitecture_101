@@ -1,0 +1,6 @@
+@HexagonalAdventure.Adapters.In.WebApi_HostAddress = http://localhost:5144
+
+GET {{HexagonalAdventure.Adapters.In.WebApi_HostAddress}}/api/
+Accept: application/json
+
+###
