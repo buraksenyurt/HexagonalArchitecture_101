@@ -18,6 +18,7 @@ Hexagonal yazılım mimarisinin prensiplerini basit senaryolar üzerinden uygula
     - [Domain Katmanı için Birim Testler](#domain-katmanı-için-birim-testler)
     - [Uygulama Katmanı için Birim Testler ve Mock Nesneler](#uygulama-katmanı-için-birim-testler-mock-nesnelerle)
     - [Entegrasyon Testleri (Adapter Katmanı Testleri)](#entegrasyon-testleri-adapter-katmanı-testleri)
+    - [TestContainer ile Entegrasyon Testleri](#testcontainer-ile-entegrasyon-testleri)
 
 ## Mimari Hakkında Genel Bilgiler
 
@@ -700,7 +701,107 @@ public class EFProductRepositoryTests
 
 Test metodumuz, **EfProductRepository** nesnemizin ihtyiaç duyduğu **DbContext** örneği için **In-Memory** bir veritabanı sağlayacak şekilde yapılandırılıyor. Böylece gerçek bir veritabanına ihtiyaç duymadan repository'nin işlevselliğini test edebiliriz. Testte önce bir ürün oluşturup kaydediyoruz, ardından aynı ürünü **GetById** metodu ile çekip kaydettiğimiz ürünle eşit olup olmadığını doğruluyoruz. Diyelim ki **DbContext** türevini uygularken **SaveChanges** metodunu yazmayı atlamışız. Bu durumda **GetById** metodunu çağırdığımızda **null** değer dönecektir. Dolayısıyla testimiz başarısız olur. Kısaca sadece kodun çalışıp çalışmadığını değil **entity framework** ayarlarını da kontrol etmiş oluyoruz. Bu test tam olarak *Domain -> Service -> Interface -> Adapter* akışını takip etmekte ve bu sayede uygulamayı gerçek çalışma ortamına oldukça yakın bir şekilde test etmiş olduk.
 
-Elbette yeterli değil. Diğer adaptörler için de benzer testler ekleyebiliriz. Örneğin **ProductController** için de bir entegrasyon testi yazabiliriz. Bu sefer **HTTP Post** isteği gönderdiğimizde her şeyin uçtan uca doğru çalıştığını görmeyi amaçlayabiliriz. Burada da WebApplicationFactory gibi bir test altyapısı kullanarak gerçek bir HTTP istemcisi üzerinden API'ye istek gönderip yanıt almayı deneme şansımız var.
+Elbette yeterli değil. Diğer adaptörler için de benzer testler ekleyebiliriz. Örneğin **ProductController** için de bir entegrasyon testi yazabiliriz. Bu sefer **HTTP Post** isteği gönderdiğimizde her şeyin uçtan uca doğru çalıştığını görmeyi amaçlayabiliriz. Burada da WebApplicationFactory gibi bir test altyapısı kullanarak gerçek bir HTTP istemcisi üzerinden API'ye istek gönderip yanıt almayı deneme şansımız var. Yine aynı test projesinde bu sefer **ProductControllerTests** isimli yeni bir test sınıfı oluşturarak devam edelim.
+
+WebApplicationFactory nesnesini kullanabilmek içinse test projemize **Microsoft.AspNetCore.Mvc.Testing** nuget paketini eklememiz gerekiyor.
+
+```csharp
+using HexagonalAdventure.Adapters.In.WebApi.Controllers;
+using Microsoft.AspNetCore.Mvc.Testing;
+using System.Net;
+using System.Net.Http.Json;
+
+namespace HexagonalAdventure.Apdaters.IntegrationTests;
+
+public class ProductControllerTests(WebApplicationFactory<Program> factory)
+    : IClassFixture<WebApplicationFactory<Program>>
+{
+    // Program sınıfı Web API projesindeki sınıfımızdır.
+    // WebApplicationFactory, bu sınıfı kullanarak testler için bir test sunucusu oluşturur.
+    private record CreateProductResponse(Guid Id);
+
+    [Fact]
+    public async Task CreateProduct_ShouldReturn200OkWithProductId()
+    {
+        // Arrange
+        var client = factory.CreateClient(); // Test sunucusuna istek göndermek için fabrikadan bir HttpClient oluşturulur.
+        var request = new CreateProductRequest("Pragmatic Programmer", 42.99m, "Books", 4);
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/products", request); // POST isteği gönderilir ve yanıt alınır.
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var responseData = await response.Content.ReadFromJsonAsync<CreateProductResponse>();
+        Assert.NotNull(responseData);
+        Assert.NotEqual(Guid.Empty, responseData.Id);
+    }
+}
+```
+
+Öncelike bu test sınıfında neler yaptığımıza bir bakalım. Sınıfımız, **IClassFixture** arayüzünü implemente ediyor ve **primary construct** üzerinden de **generic WebApplicationFactory** türünden bir nesne alıyor. Buradaki amacımız birim test metotları çağırılmadan önce Web API uygulamasının gerçek bir örneğinin bir seferliğine ayağa kaldırılmasını sağlamak. Buna göre **CreateProduct_ShouldReturn200OkWithProductId** isimli test metodumuzda önce bir HTTP istemcisi oluşturuyoruz, ardından **CreateProductRequest** türünden bir nesne örneği hazırlayıp API'ye gönderiyoruz. Son olarak da dönen yanıtın durum kodunun **200 OK** olduğunu ve gelen cevapta geçerli bir Guid *(ki product ID olarak ele alınıyor)* olup olmadığını doğruluyoruz.
+
+Bu testi koştururken dikkat etmemiz gereken noktalardan birisi gerçek bir web sunucusunu gerçekten ayağa kaldırmayışımız olması. Ayrıca bu test ile dış dünyadan gelen bir isteğin *(ki bırada HTTP isteği)*, **inbound adapter** vasıtasıyla sisteme girişini, iş kurallarından geçişini ve sonunda **outbound adapter** üzerinden kaydedilişini doğrulamaya çalışıyoruz. Yalnız burada dikkat etmemiz gereken bir nokta var. Web Api tarafında program sınıfımız gerçekten de **Postgesql**'e kayıt atacak şekilde bir repository bileşeni kullanıyor. Yani testi bu şekilde çalışıtırsak test verisi veritabanına da yazılır. Dolayısıyla bir önceki entegrasyon testinde olduğu gibi bir **in-memory** veritabanı ile çalışmak daha mantıklıdır. **WebApplicationFactory** bu noktada bize önemli esneklikler sağlar. Program sınıfındaki kurugu ezebiliriz. Buna göre az önce yazdığımız test metodunu aşağıdaki hale getirerek devam edelim.
+
+```csharp
+using HexagonalAdventure.Adapters.In.WebApi.Controllers;
+using HexagonalAdventure.Adapters.Out.EF;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using System.Data.Common;
+using System.Net;
+using System.Net.Http.Json;
+
+namespace HexagonalAdventure.Apdaters.IntegrationTests;
+
+public class ProductControllerTests(WebApplicationFactory<Program> factory)
+    : IClassFixture<WebApplicationFactory<Program>>
+{
+    private record CreateProductResponse(Guid Id);
+
+    [Fact]
+    public async Task CreateProduct_ShouldReturn200OkWithProductId()
+    {
+        // Arrange
+        // Program sınıfımızdaki DI servisi, DbContext türevini Postgresql ile çalışacak şekilde yapılandırıyor.
+        // Tabbi EF kullandığımız için beraberinde de birçok servis enjekte ediliyor. Bu yüzden DbContext ile ilgili
+        // ne kadar kayıtlı bileşen varsa kaldırıyoruz.
+        var client = factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll(typeof(IDbContextOptionsConfiguration<DeppoDbContext>)); // Program sınıfında AddDbContext'in kaydettiği Npgsql yapılandırma kaynağını kaldırır.
+                services.RemoveAll(typeof(DbContextOptions<DeppoDbContext>)); // DbContext ile ilgili tüm servisleri kaldırır.
+                services.RemoveAll(typeof(DbConnection)); // Varsa DbConnection ile ilgili tüm servisleri kaldırır. Örneğin veritabanı kayıtları silinir.
+
+                services.AddDbContext<DeppoDbContext>(options =>
+                {
+                    options.UseInMemoryDatabase("DbTest_" + Guid.NewGuid().ToString());
+                });
+            });
+        }).CreateClient();
+        var request = new CreateProductRequest("Pragmatic Programmer", 42.99m, "Books", 4);
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/products", request); // POST isteği gönderilir ve yanıt alınır.
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var responseData = await response.Content.ReadFromJsonAsync<CreateProductResponse>();
+        Assert.NotNull(responseData);
+        Assert.NotEqual(Guid.Empty, responseData.Id);
+    }
+}
+```
+
+Testlerimizdeki nihai durumu aşağıdaki görselle özetleyebiliriz.
+
+![Integration Tests](./images/IntegrationTests.png)
+
+### TestContainer ile Entegrasyon Testleri
 
 DEVAM EDECEK
 
