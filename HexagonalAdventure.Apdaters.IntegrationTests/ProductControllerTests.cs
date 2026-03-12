@@ -11,7 +11,7 @@ using System.Net.Http.Json;
 
 namespace HexagonalAdventure.Apdaters.IntegrationTests;
 
-public class ProductControllerTests(WebApplicationFactory<Program> factory)
+public class ProductControllerTestsWithContainers(WebApplicationFactory<Program> factory)
     : IClassFixture<WebApplicationFactory<Program>>
 {
     // Program sınıfı Web API projesindeki sınıfımızdır.
