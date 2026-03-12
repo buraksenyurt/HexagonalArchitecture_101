@@ -657,8 +657,51 @@ Eklediğimiz son testleri de çalıştıralım.
 
 ### Entegrasyon Testleri (Adapter Katmanı Testleri)
 
-Özellikle veritabanı veya harici servis gibi dış bağımlılıkların yer aldığı adaptör katmanı tipik olarak entegrasyon testleri ile denetlenebilir. Mesela **outbound adapter** olarak **entity framework** yardımıyla **postgresql** veritabanına gerçekten kayıt atabiliyor muyuz ya da **inbound adapter** olarak kullandığımız **ProductController** gerçekten **http** isteğine **200 OK** dönebiliyor mu gibi durumları test edebiliriz. Tabi entegrasyon testlerinde **mock nesnelerden** ziyade ortamları taklit eden yapılara ihtiyaç duyabiliriz. Mesela **docker** tarafı için **Testcontainers** ya da **entity framework** tarafı için bir **in-memory** veri sağlaycısı düşünülebilir. Şimdi **HexagonalAdventure.Adapters.IntegrationTests** şeklinde yine **xUnit** türünden yeni bir proje ekleyerek devam edelim.
+Özellikle veritabanı veya harici servis gibi dış bağımlılıkların yer aldığı adaptör katmanı tipik olarak entegrasyon testleri ile denetlenebilir. Burada amaç kodun dış dünya ile uyumlu bir şekilde çalışıp çalışmadığını kontrol etmektir. Mesela **outbound adapter** olarak **entity framework** yardımıyla **postgresql** veritabanına gerçekten kayıt atabiliyor muyuz ya da **inbound adapter** olarak kullandığımız **ProductController** gerçekten **http** isteğine **200 OK** dönebiliyor mu gibi durumları test edebiliriz. Tabi entegrasyon testlerinde **mock nesnelerden** ziyade ortamları taklit eden yapılara ihtiyaç duyabiliriz. Mesela **docker** tarafı için **Testcontainers** ya da **entity framework** tarafı için bir **in-memory** veri sağlaycısı düşünülebilir. Şimdi **HexagonalAdventure.Adapters.IntegrationTests** şeklinde yine **xUnit** türünden yeni bir proje ekleyerek devam edelim.
 
-DEVAM EDECEK...
+İlk olarak **entity framework** aracılığıyla kayıt atıp atamadığımız bakalım. Burada **mock** nesne yerine iki yaklaşımı tercih ederek ilerleyebiliriz. Bunlardan birisi **Test Container** diğeri ise **In-Memory Provider** kullanmaktır. **Microsoft.EntityFrameworkCore.InMemory** paketini kullanarak devam edelim. Dolayısıyla veri yazma sürecini bellek üzerinden kontrol edeceğiz.
+
+```csharp
+using HexagonalAdventure.Domain;
+using HexagonalAdventure.Adapters.Out.EF;
+using Microsoft.EntityFrameworkCore;
+
+namespace HexagonalAdventure.Apdaters.IntegrationTests;
+
+public class EFProductRepositoryTests
+{
+    [Fact]
+    public void Add_ShouldSaveProductToDatabase_And_GetById_ShouldReturnIt()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<DeppoDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new DeppoDbContext(options);
+        var repository = new EfProductRepository(context);
+        var productId = Guid.NewGuid();
+        var productToSave = new Product(productId, "Learning the Hexagonal Architecture", 29.99m, "Books", 2);
+
+        // Act
+        repository.AddProduct(productToSave);
+
+        // Assert
+        var retrievedProduct = repository.GetById(productId);
+        Assert.NotNull(retrievedProduct);
+        Assert.Equal(productId, retrievedProduct.Id);
+        Assert.Equal("Learning the Hexagonal Architecture", retrievedProduct.Title);
+        Assert.Equal(29.99m, retrievedProduct.ListPrice);
+        Assert.Equal("Books", retrievedProduct.Category);
+        Assert.Equal(2, retrievedProduct.StockQuantity);
+    }
+}
+```
+
+Test metodumuz, **EfProductRepository** nesnemizin ihtyiaç duyduğu **DbContext** örneği için **In-Memory** bir veritabanı sağlayacak şekilde yapılandırılıyor. Böylece gerçek bir veritabanına ihtiyaç duymadan repository'nin işlevselliğini test edebiliriz. Testte önce bir ürün oluşturup kaydediyoruz, ardından aynı ürünü **GetById** metodu ile çekip kaydettiğimiz ürünle eşit olup olmadığını doğruluyoruz. Diyelim ki **DbContext** türevini uygularken **SaveChanges** metodunu yazmayı atlamışız. Bu durumda **GetById** metodunu çağırdığımızda **null** değer dönecektir. Dolayısıyla testimiz başarısız olur. Kısaca sadece kodun çalışıp çalışmadığını değil **entity framework** ayarlarını da kontrol etmiş oluyoruz. Bu test tam olarak *Domain -> Service -> Interface -> Adapter* akışını takip etmekte ve bu sayede uygulamayı gerçek çalışma ortamına oldukça yakın bir şekilde test etmiş olduk.
+
+Elbette yeterli değil. Diğer adaptörler için de benzer testler ekleyebiliriz. Örneğin **ProductController** için de bir entegrasyon testi yazabiliriz. Bu sefer **HTTP Post** isteği gönderdiğimizde her şeyin uçtan uca doğru çalıştığını görmeyi amaçlayabiliriz. Burada da WebApplicationFactory gibi bir test altyapısı kullanarak gerçek bir HTTP istemcisi üzerinden API'ye istek gönderip yanıt almayı deneme şansımız var.
+
+DEVAM EDECEK
 
 todo@buraksenyurt Proje bağımlılıklarını gösteren bir diagram ekleyelim
