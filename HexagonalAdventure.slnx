@@ -11,4 +11,7 @@
   <Folder Name="/Core/">
     <Project Path="HexagonalAdventure.Domain/HexagonalAdventure.Domain.csproj" Id="10dbe892-62ea-45d5-b8cb-a31132299653" />
   </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="HexagonalAdventure.Domain.UnitTests/HexagonalAdventure.Domain.UnitTests.csproj" Id="2a0ffd30-08ac-4439-ad46-5e0432d53d41" />
+  </Folder>
 </Solution>
