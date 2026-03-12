@@ -14,6 +14,10 @@ Hexagonal yazılım mimarisinin prensiplerini basit senaryolar üzerinden uygula
   - [Yeni Deneyimler](#yeni-deneyimler)
   - [Entity Framework Tabanlı Yeni Adapter Eklenmesi](#entity-framework-tabanlı-yeni-adapter-eklenmesi)
   - [Farklı Bir Dış Sistem Entegrasyonu: Console Uygulaması](#farklı-bir-dış-sistem-entegrasyonu-console-uygulaması)
+  - [Testler](#testler)
+    - [Domain Katmanı için Birim Testler](#domain-katmanı-için-birim-testler)
+    - [Uygulama Katmanı için Birim Testler ve Mock Nesneler](#uygulama-katmanı-için-birim-testler-mock-nesnelerle)
+    - [Entegrasyon Testleri (Adapter Katmanı Testleri)](#entegrasyon-testleri-adapter-katmanı-testleri)
 
 ## Mimari Hakkında Genel Bilgiler
 
@@ -480,6 +484,181 @@ Tam şu anda **solution** içeriğine bakarsak aşağıdaki gibi bir iskelet olu
 
 ![Console Runtime](./images/ConsoleRuntime.png)
 
-todo@buraksenyurt Proje bağımlılıklarını gösteren bir diagram ekleyelim
+## Testler
+
+**Onion Architecture**, **Clean Architecture** gibi diğer mimari yaklaşımlarda olduğu gibi hexagonal mimaride de test edilebilirlik önemli bir avantaj olarak öne çıkar. Uygulama domain'i dış dünyadan tamamen izole edildiği için bu katmandaki kodun test edilmesi son derece kolaydır. Diğer yandan port ve adaptörler üzerinden yapılan entegrasyonları da kolayca test edebiliriz. Bu noktada da devreye genellikle mock nesneler girer. Bu sayede gerçek veritabanı veya diğer dış sistemlere ihtiyaç duymadan uygulama iş kurallarını doğrulayabiliriz. Yine basit adımlarla ilerleyelim. İlk olarak **Domain** katmanı için birkaç birim test *(unit test)* yazalım. Şu anda kobay olarak kullandığımız **Product** sınıfının çok fonksiyonelliği olmasada temel iş kurallarını içeren bir sınıf olduğu için yine de testlerini yazmak gerekir.
+
+Test yazmayı sadece kodun doğruluğunu kontrol etmek için değil, aynı zamanda kodun nasıl kullanılacağını göstermek ve kodun kendisiyle ilgili bazı önemli bilgileri belgelemek için de kullanabiliriz. Bu yüzden testler sadece doğruluk kontrolü değil, aynı zamanda bir tür dokümantasyon görevi de görürler. Ayrıca kodun kalitesini artırmak ve gelecekteki değişikliklere karşı korumak için de önemli bir araçtırlar. Birçok statik kod analiz aracı özellikle **Code Coverage** oranını baz alarak bir skor hesaplaması yapar. **Code Coverage** oranı, yazdığımız testlerin kodun ne kadarını kapsadığını gösteren bir metriktir. Yüksek bir **Code Coverage** oranı genellikle daha iyi test kapsamına işaret eder fakat bu sizi yanıltmasın kodun kalitesi için tek başına yeterli ölçü değildir. Testlerin kalitesi ve doğruluğu da önemlidir. Bu yüzden sadece yüksek bir **Code Coverage** oranına odaklanmak yerine, testlerin gerçekten kodun doğru çalıştığını ve beklenen sonuçları verdiğini doğrulamak önemlidir.
+
+### Domain Katmanı için Birim Testler
+
+Bu kadar laf kalabalığını bir kenara bırakalım ve dilerseniz ilk birim testlerimizi yazalım. **HexagonalAdventure.Domain.UnitTests** isimli yeni bir test projesi oluşturarak işe başlayabiliriz. İçerisine **ProductTests** isimli bir test sınıfı ekleyelim ve aşağıdaki gibi birkaç test metodu ekleyelim.
+
+```csharp
+namespace HexagonalAdventure.Domain.UnitTests;
+
+public class ProductTests
+{
+    [Fact]
+    public void DecreaseStock_When_StockIsEnough()
+    {
+        // Arrange (Hazırlık safhası)
+        var product = new Product(Guid.NewGuid(), "Optical Mouse", 29.99m, "Electronics", 10);
+
+        // Act (Eylem safhası)
+        product.DecreaseStock(5);
+
+        // Assert (Doğrulama safhası)
+        var expectedStock = 5;
+        Assert.Equal(expectedStock, product.StockQuantity);
+    }
+
+    [Fact]
+    public void DecreaseStock_When_StockIsNotEnough_ShouldThrowException()
+    {
+        // Arrange
+        var product = new Product(Guid.NewGuid(), "Mechanical Keyboard", 79.99m, "Electronics", 3);
+
+        // Act & Assert
+        Assert.Throws<InvalidOperationException>(() => product.DecreaseStock(5));
+    }
+
+    [Fact]
+    public void IncreaseStock_ShouldIncreaseStockQuantity()
+    {
+        // Arrange
+        var product = new Product(Guid.NewGuid(), "Gaming Headset", 49.99m, "Electronics", 5);
+
+        // Act
+        product.IncreaseStock(10);
+
+        // Assert
+        var expectedStock = 15;
+        Assert.Equal(expectedStock, product.StockQuantity);
+    }
+
+    [Fact]
+    public void IncreaseStock_When_AmountIsNegative_ShouldThrowException()
+    {
+        // Arrange
+        var product = new Product(Guid.NewGuid(), "USB-C Hub", 39.99m, "Electronics", 8);
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => product.IncreaseStock(-5));
+    }
+}
+```
+
+Şu an için sadece stok miktarı artıran ve azaltan metotları test ettik. Bu test projesi **Domain** katmanı dışındaki hiçbir projeyi referans etmez, hiçbir dış bağımlılık da içermez. Sadece bir **Test Framework** kullanır. Yazdığımız testleri kod editörlerü üzerinden test edebileceğimiz gibi komut satırından da çalıştırabiliriz.
+
+```bash
+# Solution içindeki tüm test projelerini çalıştırmak için
+dotnet test
+
+# Belli bir test projesini çalıştırmak içinse
+dotnet test HexagonalAdventure.Domain.Tests
+```
+
+Sonuç olarak yazdığımız testlerin başarılı olduğunu görebiliriz.
+
+![Domain Tests](./images/DomainTests.png)
+
+### Uygulama Katmanı için Birim Testler (Mock Nesnelerle)
+
+Şimdi de uygulama katmanını göz önüne alalım. Örneğin buradaki **ProductService** sınıfı için birim testler ekleyelim. Tabii burada dikkat edilmesi gereken bir başla konu var. Bu sefer **ProductService** sınıfının kullanmak için içerisine enjekte edilen **IProductRepository** sözleşmesine dayalı bir bağımlılık *(Dependency)* var. Birim testlerde bu tip bağımlılıklarda somut implementasyonları kullanmak yerine genellikle **mock** nesneler tercih edilir. Mock nesneler, gerçek nesnelerin davranışlarını taklit eden sahte nesneler olarak düşünülebilir. Bu sayede gerçek veritabanı veya diğer dış sistemlere ihtiyaç duymadan uygulama iş kurallarını doğrulayabiliriz. Bu amaçla **Solution** içinde **HexagonalAdventure.Application.UnitTests** isimli yeni bir test projesi oluşturarak başlayabiliriz. Tabii bu projede **Moq** gibi bir **mocking framework** kullanarak bağımlılıkları taklit etmemiz gerekiyor. Gerekli **nuget** paketlerini ekledikten sonra **ProductServiceTests** isimli test sınıfını aşağıdaki gibi yazarak devam edelim.
+
+> **Pratik bilgi:** **Mock** nesneleri gibi dış bağımlılıkları taklit eden enstrümanlarda testlerin gerçekten bir veritabanına veya bir servise daha doğrusu ağ üzerinde bir yerlere gitmediğinde emin olmak için kullanılabilecek ilkel yollardan birisi test projesindeki **appsettings.json** dosyasına geçersiz bağlantı bilgileri eklemek olabilir. Böylece yanlışlıkla gerçek bir veritabanına bağlanmaya çalıştığımızda testlerimiz başarısız olur ve bu durum bize bir şeylerin yanlış gittiğine dair bir sinyal verir ya da bağlantılar uzak sunucularda ise interneti testler sırasında kapatmak da benzer bir etki yaratır. Tabii bunlar ilgili testleri kendi makinemizde koşturmak istediğimiz durumlar için geçerlidir. Fakat gerçekten de veritabanına gidiliyorsa bunu **CI/CD** süreçlerinde acı bir şekilde öğrenmek yerine local ortamda öğrenmek daha iyi olabilir.
+
+```csharp
+namespace HexagonalAdventure.Application.UnitTests;
+
+using Moq;
+using HexagonalAdventure.Application.Ports.Outbound;
+using HexagonalAdventure.Application.Services;
+using HexagonalAdventure.Domain;
+
+public class ProductServiceTests
+{
+    [Fact]
+    public void CreateProduct_ShouldReturnValidGuid()
+    {
+        // Arange
+        var mockRepo = new Mock<IProductRepository>();
+        mockRepo.Setup(r => r.AddProduct(It.IsAny<Domain.Product>()));
+
+        // Act
+        var service = new ProductService(mockRepo.Object);
+        var actualGuid = service.CreateProduct("AyBiEm Laptop i7", 1500m, "Electronics", 10);
+
+        // Assert
+        Assert.NotEqual(Guid.Empty, actualGuid);
+
+        // Verify (Gerçekten de dış bağımlılıktaki AddProduct metodunun çağrıldığını doğrulamak için)
+        mockRepo.Verify(r => r.AddProduct(It.IsAny<Domain.Product>()), Times.Once);
+    }
+
+    [Fact]
+    public void CreateProduct_ShouldPassCorrectDataToRepository()
+    {
+        // Arange
+        var mockRepo = new Mock<IProductRepository>();
+        Product capturedProduct = null;
+        mockRepo.Setup(r => r.AddProduct(It.IsAny<Product>()))
+                .Callback<Product>(p => capturedProduct = p);
+
+        // Act
+        var service = new ProductService(mockRepo.Object);
+        var actualGuid = service.CreateProduct("AyBiEm Laptop i7", 1500m, "Electronics", 10);
+
+        // Assert
+        Assert.NotNull(capturedProduct);
+        Assert.Equal("AyBiEm Laptop i7", capturedProduct.Title);
+        Assert.Equal(1500m, capturedProduct.ListPrice);
+        Assert.Equal("Electronics", capturedProduct.Category);
+        Assert.Equal(10, capturedProduct.StockQuantity);
+    }
+
+    [Fact]
+    public void CreateProduct_WhenTitleIsEmpty_ShouldThrowException()
+    {
+        // Arange
+        var mockRepo = new Mock<IProductRepository>();
+
+        // Act
+        var service = new ProductService(mockRepo.Object);
+
+        // Assert
+        Assert.Throws<ArgumentException>(() => service.CreateProduct("", 1500m, "Electronics", 10));
+    }
+
+    [Fact]
+    public void CreateProduct_WithNegativeStockQuantity_ShouldThrowException()
+    {
+        //Arange
+        var mockRepo = new Mock<IProductRepository>();
+        var service = new ProductService(mockRepo.Object);
+
+        //Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => service.CreateProduct("AyBiEm Laptop i7", 1500m, "Electronics", -5));
+
+        //Verify
+        mockRepo.Verify(r => r.AddProduct(It.IsAny<Product>()), Times.Never);
+    }
+}
+```
+
+Şimdi buradaki test metodları hakkında biraz konuşalım. **CreateProduct_ShouldReturnValidGuid** testinde **CreateProduct** fonksiyonunun geçerli bir **Guid** döndürüp döndürmediğini doğruluyoruz. **CreateProduct_ShouldPassCorrectDataToRepository** test metodunda ise **CreateProduct** fonksiyonunun **IProductRepository**'nin **AddProduct** metodunu doğru verilerle çağırıp çağırmadığını. Zira **CreateProduct** metodunun doğru çalışması sadece geriye geçerli bir Guid değer döndürdüğü ile ölçülemez. Gerçekten gönderdiğimiz ürün bilgilerinin AddProduct metoduna gittiğinden emin olmalıyız. Bunun için **setup** metodunu kullanırken **callback** fonksiyonunda bir **Product** nesnesi kullandık. Sonuçta **CreateProduct** metodu içindeki **AddProduct** çağrılmadan önce bir **Product** nesnesi örnekleniyor. Dolayısıyla **CreateProduct** parametreleri ile oluşan **Product** nesne örneği değerlerinin, **Callback** ile dönen **Product** nesne örneği değerlerine eşit olması gerekir.
+
+**CreateProduct_WhenTitleIsEmpty_ShouldThrowException** ve **CreateProduct_WithNegativeStockQuantity_ShouldThrowException** isimli testlerde ise geçersiz girdilerle **CreateProduct** fonksiyonunun beklenen şekilde istisna fırlatıp fırlatmadığını doğruluyoruz. **CreateProduct** metodu içinde doğrudan bir **exception** fırlatımı söz konusu olmasa da, **Product** sınıfı içinde tanımlı **domain kurallarımız** var ve bunlar **exception** döndürüyor. Buna ek olarak **CreateProduct_WithNegativeStockQuantity_ShouldThrowException** testinde,geçersiz bir stok miktarıyla ürün oluşturulmaya çalışıldığında, **AddProduct** metodunun hiç çağrılmadığını da doğruluyoruz. Böylece hem iş kurallarının doğruluğunu hem de dış bağımlılıklara yapılan çağrıların doğruluğunu test etmiş olduk.
+
+Eklediğimiz son testleri de çalıştıralım.
+
+![Application Tests](./images/ApplicationTests.png)
+
+### Entegrasyon Testleri (Adapter Katmanı Testleri)
+
+Özellikle veritabanı veya harici servis gibi dış bağımlılıkların yer aldığı adaptör katmanı tipik olarak entegrasyon testleri ile denetlenebilir. Mesela **outbound adapter** olarak **entity framework** yardımıyla **postgresql** veritabanına gerçekten kayıt atabiliyor muyuz ya da **inbound adapter** olarak kullandığımız **ProductController** gerçekten **http** isteğine **200 OK** dönebiliyor mu gibi durumları test edebiliriz. Tabi entegrasyon testlerinde **mock nesnelerden** ziyade ortamları taklit eden yapılara ihtiyaç duyabiliriz. Mesela **docker** tarafı için **Testcontainers** ya da **entity framework** tarafı için bir **in-memory** veri sağlaycısı düşünülebilir. Şimdi **HexagonalAdventure.Adapters.IntegrationTests** şeklinde yine **xUnit** türünden yeni bir proje ekleyerek devam edelim.
 
 DEVAM EDECEK...
+
+todo@buraksenyurt Proje bağımlılıklarını gösteren bir diagram ekleyelim
