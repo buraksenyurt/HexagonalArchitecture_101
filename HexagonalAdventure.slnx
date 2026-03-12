@@ -15,5 +15,6 @@
     <Project Path="HexagonalAdventure.Apdaters.IntegrationTests/HexagonalAdventure.Apdaters.IntegrationTests.csproj" Id="03864e1f-b50b-40bf-8fb6-985d61a7cfd2" />
     <Project Path="HexagonalAdventure.Application.UnitTests/HexagonalAdventure.Application.UnitTests.csproj" Id="7e361b24-1fa5-4813-940a-bc7687107568" />
     <Project Path="HexagonalAdventure.Domain.UnitTests/HexagonalAdventure.Domain.UnitTests.csproj" Id="2a0ffd30-08ac-4439-ad46-5e0432d53d41" />
+    <Project Path="HexagonalAdventures.Architecture.Tests/HexagonalAdventures.Architecture.Tests.csproj" Id="7cdfef33-0e92-4686-9bda-1740c7d7cfa8" />
   </Folder>
 </Solution>
