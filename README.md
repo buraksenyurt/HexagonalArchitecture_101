@@ -803,6 +803,108 @@ Testlerimizdeki nihai durumu aşağıdaki görselle özetleyebiliriz.
 
 ### TestContainer ile Entegrasyon Testleri
 
-DEVAM EDECEK
+Son entegrasyon testlerinde **in-memory** veritabanı kullanarak ilerledik ancak kurumsal çaptaki çözümlerde genellikle **Test Container**' lar tercih ediliyor. Bunun en büyük sebebi **in-memory** veritabanı rolünü üstlenen enstrümanın aslında gerçekten bir veritabanı olmamasıdır. Zira SQL'e veye PostgreSQL'e özgü birçok özellik desteklenmez. Misal JSONB veri kolonları veya **stored procedure** ler. Hoş iş süreçlerindeki kuralların **stored procedure**'lere yazılması pek de iyi bir fikir değildir ama yine de bazı durumlarda böyle bir şeyle karşılaşmak mümkün olabilir. Bu yüzden gerçek bir veritabanı kullanmak daha sağlıklı sonuçlar verecektir. Bir **Test Container** kullanarak testler sırasında geçici olarak ayağa kaldırılan gerçek bir veritabanı ile entegrasyon olabiliriz. Test Container teorik olarak arka planda bir **docker container** ayağa kaldırır. Dolayısıyla sisteminizde docker kurulu olduğunu varsayıyorum. Bizim senaryomuzda ben **Postgresql** kullandığım için **Testcontainers.PostgreSql** isimli **nuget** paketini kullanarak devam edeceğim. Şimdi test projesine aşağıdaki kod içeriğine sahip olan **WebApplicationFactory** türevini ekleyelim.
+
+```csharp
+using HexagonalAdventure.Adapters.Out.EF;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using System.Data.Common;
+using Testcontainers.PostgreSql;
+
+namespace HexagonalAdventure.Apdaters.IntegrationTests;
+
+public class PostgresWebApplicationFactory
+    : WebApplicationFactory<Program>, IAsyncLifetime
+{
+    // Testler başlamadan önce ve bittikten sonra yapmamız gereken kaynak yönetim işlemleri olacağından
+    // bu sınıfa IAsyncLifetime arayüzünü de uyguladık.
+
+    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
+        .WithDatabase("DeppoTestDb")
+        .WithUsername("postgres")
+        .WithPassword("P@ssw0rd1234")
+        .Build();
+    public async Task InitializeAsync()
+    {
+        // Docker üzerinden postgresql konteynırını başlatır. Testler bu veritabanını kullanacak.
+        await _container.StartAsync();
+    }
+
+    async Task IAsyncLifetime.DisposeAsync()
+    {
+        await _container.DisposeAsync(); // Testler tamamlandıktan sonra konteynırı durdurur ve kaynakları temizler.
+    }
+
+    // Burada da WebApplicationFactory'den gelen ConfigureWebHost metodunu eziyoruz(override)
+    // Burada klasik olarak program sınıfındaki servislerin temizlenmesi ve container db'nin context'e eklenmesi gibi işlemler yapılıyor.
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.ConfigureServices(services =>
+        {
+            services.RemoveAll(typeof(IDbContextOptionsConfiguration<DeppoDbContext>)); // Program sınıfında AddDbContext'in kaydettiği Npgsql yapılandırma kaynağını kaldırır.
+            services.RemoveAll(typeof(DbContextOptions<DeppoDbContext>)); // DbContext ile ilgili tüm servisleri kaldırır.
+            services.RemoveAll(typeof(DbConnection)); // Varsa DbConnection ile ilgili tüm servisleri kaldırır. Örneğin veritabanı kayıtları silinir.
+
+            services.AddDbContext<DeppoDbContext>(options =>
+            {
+                options.UseNpgsql(_container.GetConnectionString()); // Artık Npgsql, container'ın sağladığı db'ye bağlanacak
+            });
+
+            // Tabii şimdi bir konteynır kullanıyor olsa da gerçek veritabanına ihtiyacımız var.
+            // Dolayısıyla migration prosedürünü yürütmemiz lazım ki gerekli tablolar da oluşsun.
+            var serviceProvider = services.BuildServiceProvider();
+            using var scope = serviceProvider.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<DeppoDbContext>();
+            dbContext.Database.EnsureCreated();
+        });
+    }
+}
+```
+
+Buna göre tek yapmamız gereken test sınıfına **WebApplicationFactory** yerine **PostgresWebApplicationFactory** türünden bir nesne örneğini enjekte etmek olacak. Bu çalışmadaki diğer test metodu ile karışmaması adına yeni bir test sınıfı ve metod ile devam etmeye karar verdim. Aynen aşağıdaki gibi;
+
+```csharp
+using HexagonalAdventure.Adapters.In.WebApi.Controllers;
+using System.Net;
+using System.Net.Http.Json;
+
+namespace HexagonalAdventure.Apdaters.IntegrationTests;
+
+public class ProductControllerTests(PostgresWebApplicationFactory factory)
+    : IClassFixture<PostgresWebApplicationFactory>
+{
+    private record CreateProductResponse(Guid Id);
+
+    [Fact]
+    public async Task CreateProduct_WhenUsingContainer_ShouldReturn200OkWithProductId()
+    {
+        // Arrange
+        var client = factory.CreateClient();
+        var request = new CreateProductRequest("Pragmatic Programmer", 42.99m, "Books", 4);
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/products", request);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var responseData = await response.Content.ReadFromJsonAsync<CreateProductResponse>();
+        Assert.NotNull(responseData);
+        Assert.NotEqual(Guid.Empty, responseData.Id);
+    }
+}
+```
+
+Sadece bu testi çalıştırarıp gerçekten de docker tarafında bir **container** ayağa kalkıyor mu ve testler bu container'daki veritabanına bağlanarak çalışıyor mu diye kontrol edebiliriz.
+
+![Container based integration tests](./images/ContainerTest.png)
+
+Burada dikkat edilmesi gereken nokta söz konusu container'ın test tamamlanmadan önce başlatılması ve test bittikten sonra da kaldırılmasıdır. İlk ısınma sırasında *(warm-up diyelim)* testin süresi biraz uzayabilir zira container'ın ayağa kalkması ve veritabanının hazır hale gelmesi zaman alabilir. Ancak kullanmak istediğimiz veritabanı özellikleri düşünülürse bu maliyete değebilir.
+
+DEVAM EDECEK...
 
 todo@buraksenyurt Proje bağımlılıklarını gösteren bir diagram ekleyelim
