@@ -19,6 +19,8 @@ Hexagonal yazılım mimarisinin prensiplerini basit senaryolar üzerinden uygula
     - [Uygulama Katmanı için Birim Testler ve Mock Nesneler](#uygulama-katmanı-için-birim-testler-mock-nesnelerle)
     - [Entegrasyon Testleri (Adapter Katmanı Testleri)](#entegrasyon-testleri-adapter-katmanı-testleri)
     - [TestContainer ile Entegrasyon Testleri](#testcontainer-ile-entegrasyon-testleri)
+    - [Mimari Uygunluk Testleri](#mimari-uygunluk-testleri)
+  - [Genel Görünüm](#genel-görünüm)
 
 ## Mimari Hakkında Genel Bilgiler
 
@@ -905,6 +907,65 @@ Sadece bu testi çalıştırarıp gerçekten de docker tarafında bir **containe
 
 Burada dikkat edilmesi gereken nokta söz konusu container'ın test tamamlanmadan önce başlatılması ve test bittikten sonra da kaldırılmasıdır. İlk ısınma sırasında *(warm-up diyelim)* testin süresi biraz uzayabilir zira container'ın ayağa kalkması ve veritabanının hazır hale gelmesi zaman alabilir. Ancak kullanmak istediğimiz veritabanı özellikleri düşünülürse bu maliyete değebilir.
 
-DEVAM EDECEK...
+### Mimari Uygunluk Testleri
 
-todo@buraksenyurt Proje bağımlılıklarını gösteren bir diagram ekleyelim
+Pek çok mimari yaklaşım bileşener arası bağımlılıkların ve izolasyonların doğru yönetilmesi konusunda hassastır. Örneğin bu çalışmada ele aldığımız **hexagonal** mimaride uygulama domain'inin dış dünyaya olan bağımlılığını tamamen ortadan kaldırmak önemli bir prensiptir. Örneğin **domain** katmanında bir şekilde **entity framework** ile konuşmaya başladığımız an mimarinin temel prensiplerinden biri olan bağımsızlık ilkesini ihlal etmiş oluruz. Bu tür durumları tespit etmek için mimari uygunluk testleri yazılabilir. **Microsoft .Net** tarafından bakacak olursak bu kontrolü kolayca icra etmemizi sağlayan **NetArchTest.Rules** isimli bir nuget paketi vardır. Mimari testleri ayrı bir projede ele alalım ve bu amaçla **HexagonalAdventure.Architecture.Tests** isimli yeni bir test projesi oluşturarak başlayalım. Projeye **NetArchTest.Rules** paketini ekledikten sonrada aşağıdaki gibi bir test sınıfı yazalım.
+
+```csharp
+using HexagonalAdventure.Application.Services;
+using HexagonalAdventure.Domain;
+using NetArchTest.Rules;
+
+namespace HexagonalAdventures.Architecture.Tests;
+
+public class DomainLayerTests
+{
+    [Fact]
+    public void DomainLayer_ShouldNotHaveDependencyOnOtherLayers()
+    {
+        // Arrange
+        var domainAssembly = typeof(Product).Assembly;
+
+        // Act
+        var result = Types.InAssembly(domainAssembly)
+            .ShouldNot()
+            .HaveDependencyOnAny(
+            "HexagonalAdventure.Application",
+            "HexagonalAdventure.Adapters",
+            "Microsoft.EntityFrameworkCore"
+            )
+            .GetResult();
+
+        // Assert
+        Assert.True(result.IsSuccessful, "Domain layer should not have dependencies on Application, Adapters, or EF Core.");
+    }
+
+    [Fact]
+    public void ApplicationLayer_ShouldNotHaveDependencyOnAdapters()
+    {
+        // Arrange
+        var appAssembly = typeof(ProductService).Assembly;
+        
+        // Act
+        var result = Types.InAssembly(appAssembly)
+            .ShouldNot()
+            .HaveDependencyOn("HexagonalAdventure.Adapters")
+            .GetResult();
+
+        // Assert
+        Assert.True(result.IsSuccessful, "Application layer should not have dependencies on Adapters.");
+    }
+}
+```
+
+Bu testlere göre örneğin **HexagonalAdventure.Application** öneki içeren namespace'lerin olduğu projelerin **Domain** katmanına sızmasını engellemiş oluyoruz *(Entity Framework ile birlikte tabii)*. Ben burada sadece birkaç temel kontrol ekledim ancak mimari uygunluk testlerini çok daha detaylı hale getirmek mümkün olabilir. Örneğin **domain** katmanında sadece **domain entity**'lerin bulunması gerektiği gibi bir kural veya **application** katmanında sadece servislerin bulunması gerektiği gibi bir kural da ekleyebiliriz.
+
+Güncel olarak geldiğimiz noktada projemizdeki tüm testlerin başarılı bir şekilde çalıştığını görebiliriz.
+
+![Last test results](./images/LastTestResults.png)
+
+## Genel Görünüm
+
+Solution içeriğinde birçok proje ve harici **nuget** bağımlılıkları var. Gelinen noktada neler olduğunu kabaca aşağıdaki diagramda olduğu gibi özetleyebiliriz.
+
+![General Overview](./images/GeneralOverview.png)
