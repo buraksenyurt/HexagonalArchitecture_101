@@ -12,14 +12,14 @@ Hexagonal yazılım mimarisinin prensiplerini basit senaryolar üzerinden uygula
     - [4. Uygulama Servisi ve Use Case'in Tanımlanması](#4-uygulama-servisi-ve-use-casein-tanımlanması)
     - [5. Inbound Adaptörün Yazılması ve Entegrasyonu](#5-inbound-adaptörün-yazılması-ve-entegrasyonu)
   - [Yeni Deneyimler](#yeni-deneyimler)
-  - [Entity Framework Tabanlı Yeni Adapter Eklenmesi](#entity-framework-tabanlı-yeni-adapter-eklenmesi)
-  - [Farklı Bir Dış Sistem Entegrasyonu: Console Uygulaması](#farklı-bir-dış-sistem-entegrasyonu-console-uygulaması)
+  - [6. Entity Framework Tabanlı Yeni Adapter Eklenmesi](#6-entity-framework-tabanlı-yeni-adapter-eklenmesi)
+  - [7. Farklı Bir Dış Sistem Entegrasyonu: Console Uygulaması](#7-farklı-bir-dış-sistem-entegrasyonu-console-uygulaması)
   - [Testler](#testler)
-    - [Domain Katmanı için Birim Testler](#domain-katmanı-için-birim-testler)
-    - [Uygulama Katmanı için Birim Testler ve Mock Nesneler](#uygulama-katmanı-için-birim-testler-mock-nesnelerle)
-    - [Entegrasyon Testleri (Adapter Katmanı Testleri)](#entegrasyon-testleri-adapter-katmanı-testleri)
-    - [TestContainer ile Entegrasyon Testleri](#testcontainer-ile-entegrasyon-testleri)
-    - [Mimari Uygunluk Testleri](#mimari-uygunluk-testleri)
+    - [8. Domain Katmanı için Birim Testler](#8-domain-katmanı-için-birim-testler)
+    - [9. Uygulama Katmanı için Birim Testler ve Mock Nesneler](#9-uygulama-katmanı-için-birim-testler-mock-nesnelerle)
+    - [10. Entegrasyon Testleri (Adapter Katmanı Testleri)](#10-entegrasyon-testleri-adapter-katmanı-testleri)
+    - [11. TestContainer ile Entegrasyon Testleri](#11-testcontainer-ile-entegrasyon-testleri)
+    - [12. Mimari Uygunluk Testleri](#12-mimari-uygunluk-testleri)
   - [Genel Görünüm](#genel-görünüm)
 
 ## Mimari Hakkında Genel Bilgiler
@@ -279,10 +279,10 @@ Kaba taslak mimariyi uyguladık gibi görünüyor. Şimdi farklı senaryolar ile
 
 - [x] Örneğin veritabanı tarafında **Postgresql** kullanan bir **Outbound Adapter** eklemeye çalışalım. **Entity Framework** olur ya da **Dapper** olur. *(Yeni adaptör ekleme senaryosu)*
 - Yeni bir fonksiyonellik ilave edelim. **ID** değerinden ürün bilgisini çeken işlevselliği dahil edebiliriz. *(Yeni fonksiyonellik ekleme senaryosu)*
-- Farklı bir dış sistemi dahil edelim. Söz gelimi bir **Console** uygulaması. *(Console uygulaması Web Api'yi kullanmayacak elbette)*
-- Biraz da test ekleyelim ve test edilebilirliği görmeye çalışalım. *(Test ekleme senaryosu)*
+- [x] Farklı bir dış sistemi dahil edelim. Söz gelimi bir **Console** uygulaması. *(Console uygulaması Web Api'yi kullanmayacak elbette)*
+- [x] Biraz da test ekleyelim ve test edilebilirliği görmeye çalışalım. *(Test ekleme senaryosu)*
 
-## Entity Framework Tabanlı Yeni Adapter Eklenmesi
+## 6. Entity Framework Tabanlı Yeni Adapter Eklenmesi
 
 Adettendir her repomda olduğu gibi veritabanı söz konusu ise genellikle bir **docker-compose** dosyasında **postgresql** ve **pg-admin** servislerini konuşlandırarak başlarım. Kendi sistemimdeki docker-compose içeriği aşağıdaki gibi.
 
@@ -442,7 +442,7 @@ Eğer her şey yolunda gittiyse aşağıdaki ekran görüntüsünde olduğu bu s
 
 Dikkat edileceği üzere sisteme yeni bir adapter ekledik fakat uygulama domain'ine hiç dokunmadık. Dış sistem entegrasyonunda sadece yeni eklediğimiz adapter'ı var olan port'a bağladık. Böylece uygulama domain'inin dış dünyaya olan bağımlılığını tamamen ortadan kaldırmış olduk.
 
-## Farklı Bir Dış Sistem Entegrasyonu: Console Uygulaması
+## 7. Farklı Bir Dış Sistem Entegrasyonu: Console Uygulaması
 
 Senaryomuzu şimdi biraz daha genişletelim ve farklı bir dış sistem entegrasyonu yapalım. Web Api'ye ek olarak bir de **Console** uygulaması geliştirelim. Console uygulaması Web Api'yi kullanmayacak elbette. Doğrudan uygulama servislerini kullanarak çalışacak. Böylece farklı bir adaptörün var olan port'a nasıl bağlandığını göreceğiz. Bir başka deyişle console uygulaması farklı bir **Inbound Adapter** olacak. Console uygulamasında da dikkate almamız gereken şeyler var. Örneğin burada da bir **Composition Root** kullanmamız mimariye uygunluk açısından önemli olacak. Yani bir Depdendency Injection Container hazırlayıp **port** ve **adaptörleri** birbirine bağlayacağız.
 
@@ -493,7 +493,7 @@ Tam şu anda **solution** içeriğine bakarsak aşağıdaki gibi bir iskelet olu
 
 Test yazmayı sadece kodun doğruluğunu kontrol etmek için değil, aynı zamanda kodun nasıl kullanılacağını göstermek ve kodun kendisiyle ilgili bazı önemli bilgileri belgelemek için de kullanabiliriz. Bu yüzden testler sadece doğruluk kontrolü değil, aynı zamanda bir tür dokümantasyon görevi de görürler. Ayrıca kodun kalitesini artırmak ve gelecekteki değişikliklere karşı korumak için de önemli bir araçtırlar. Birçok statik kod analiz aracı özellikle **Code Coverage** oranını baz alarak bir skor hesaplaması yapar. **Code Coverage** oranı, yazdığımız testlerin kodun ne kadarını kapsadığını gösteren bir metriktir. Yüksek bir **Code Coverage** oranı genellikle daha iyi test kapsamına işaret eder fakat bu sizi yanıltmasın kodun kalitesi için tek başına yeterli ölçü değildir. Testlerin kalitesi ve doğruluğu da önemlidir. Bu yüzden sadece yüksek bir **Code Coverage** oranına odaklanmak yerine, testlerin gerçekten kodun doğru çalıştığını ve beklenen sonuçları verdiğini doğrulamak önemlidir.
 
-### Domain Katmanı için Birim Testler
+### 8. Domain Katmanı için Birim Testler
 
 Bu kadar laf kalabalığını bir kenara bırakalım ve dilerseniz ilk birim testlerimizi yazalım. **HexagonalAdventure.Domain.UnitTests** isimli yeni bir test projesi oluşturarak işe başlayabiliriz. İçerisine **ProductTests** isimli bir test sınıfı ekleyelim ve aşağıdaki gibi birkaç test metodu ekleyelim.
 
@@ -566,9 +566,9 @@ Sonuç olarak yazdığımız testlerin başarılı olduğunu görebiliriz.
 
 ![Domain Tests](./images/DomainTests.png)
 
-### Uygulama Katmanı için Birim Testler (Mock Nesnelerle)
+### 9. Uygulama Katmanı için Birim Testler (Mock Nesnelerle)
 
-Şimdi de uygulama katmanını göz önüne alalım. Örneğin buradaki **ProductService** sınıfı için birim testler ekleyelim. Tabii burada dikkat edilmesi gereken bir başla konu var. Bu sefer **ProductService** sınıfının kullanmak için içerisine enjekte edilen **IProductRepository** sözleşmesine dayalı bir bağımlılık *(Dependency)* var. Birim testlerde bu tip bağımlılıklarda somut implementasyonları kullanmak yerine genellikle **mock** nesneler tercih edilir. Mock nesneler, gerçek nesnelerin davranışlarını taklit eden sahte nesneler olarak düşünülebilir. Bu sayede gerçek veritabanı veya diğer dış sistemlere ihtiyaç duymadan uygulama iş kurallarını doğrulayabiliriz. Bu amaçla **Solution** içinde **HexagonalAdventure.Application.UnitTests** isimli yeni bir test projesi oluşturarak başlayabiliriz. Tabii bu projede **Moq** gibi bir **mocking framework** kullanarak bağımlılıkları taklit etmemiz gerekiyor. Gerekli **nuget** paketlerini ekledikten sonra **ProductServiceTests** isimli test sınıfını aşağıdaki gibi yazarak devam edelim.
+Şimdi de uygulama katmanını göz önüne alalım. Örneğin buradaki **ProductService** sınıfı için birim testler ekleyelim. Tabii burada dikkat edilmesi gereken bir başla konu var. Bu sefer **ProductService** sınıfının kullanmak için içerisine enjekte edilen **IProductRepository** sözleşmesine dayalı bir bağımlılık *(Dependency)* var. Birim testlerde bu tip bağımlılıklarda somut implementasyonları kullanmak yerine genellikle **mock** nesneler tercih edilir. Mock nesneler, gerçek nesnelerin davranışlarını taklit eden sahte nesneler olarak düşünülebilir. Bu sayede gerçek veritabanı veya diğer dış sistemlere ihtiyaç duymadan uygulama iş kurallarını doğrulayabiliriz. Bu amaçla **Solution** içinde **HexagonalAdventure.Application.UnitTests** isimli yeni bir test projesi oluşturarak başlayabiliriz. Tabii bu projede [Moq](https://www.nuget.org/packages/moq/) gibi bir **mocking framework** kullanarak bağımlılıkları taklit etmemiz gerekiyor. Gerekli **nuget** paketlerini ekledikten sonra **ProductServiceTests** isimli test sınıfını aşağıdaki gibi yazarak devam edelim.
 
 > **Pratik bilgi:** **Mock** nesneleri gibi dış bağımlılıkları taklit eden enstrümanlarda testlerin gerçekten bir veritabanına veya bir servise daha doğrusu ağ üzerinde bir yerlere gitmediğinde emin olmak için kullanılabilecek ilkel yollardan birisi test projesindeki **appsettings.json** dosyasına geçersiz bağlantı bilgileri eklemek olabilir. Böylece yanlışlıkla gerçek bir veritabanına bağlanmaya çalıştığımızda testlerimiz başarısız olur ve bu durum bize bir şeylerin yanlış gittiğine dair bir sinyal verir ya da bağlantılar uzak sunucularda ise interneti testler sırasında kapatmak da benzer bir etki yaratır. Tabii bunlar ilgili testleri kendi makinemizde koşturmak istediğimiz durumlar için geçerlidir. Fakat gerçekten de veritabanına gidiliyorsa bunu **CI/CD** süreçlerinde acı bir şekilde öğrenmek yerine local ortamda öğrenmek daha iyi olabilir.
 
@@ -658,7 +658,7 @@ Eklediğimiz son testleri de çalıştıralım.
 
 ![Application Tests](./images/ApplicationTests.png)
 
-### Entegrasyon Testleri (Adapter Katmanı Testleri)
+### 10. Entegrasyon Testleri (Adapter Katmanı Testleri)
 
 Özellikle veritabanı veya harici servis gibi dış bağımlılıkların yer aldığı adaptör katmanı tipik olarak entegrasyon testleri ile denetlenebilir. Burada amaç kodun dış dünya ile uyumlu bir şekilde çalışıp çalışmadığını kontrol etmektir. Mesela **outbound adapter** olarak **entity framework** yardımıyla **postgresql** veritabanına gerçekten kayıt atabiliyor muyuz ya da **inbound adapter** olarak kullandığımız **ProductController** gerçekten **http** isteğine **200 OK** dönebiliyor mu gibi durumları test edebiliriz. Tabi entegrasyon testlerinde **mock nesnelerden** ziyade ortamları taklit eden yapılara ihtiyaç duyabiliriz. Mesela **docker** tarafı için **Testcontainers** ya da **entity framework** tarafı için bir **in-memory** veri sağlaycısı düşünülebilir. Şimdi **HexagonalAdventure.Adapters.IntegrationTests** şeklinde yine **xUnit** türünden yeni bir proje ekleyerek devam edelim.
 
@@ -803,9 +803,9 @@ Testlerimizdeki nihai durumu aşağıdaki görselle özetleyebiliriz.
 
 ![Integration Tests](./images/IntegrationTests.png)
 
-### TestContainer ile Entegrasyon Testleri
+### 11. TestContainer ile Entegrasyon Testleri
 
-Son entegrasyon testlerinde **in-memory** veritabanı kullanarak ilerledik ancak kurumsal çaptaki çözümlerde genellikle **Test Container**' lar tercih ediliyor. Bunun en büyük sebebi **in-memory** veritabanı rolünü üstlenen enstrümanın aslında gerçekten bir veritabanı olmamasıdır. Zira SQL'e veye PostgreSQL'e özgü birçok özellik desteklenmez. Misal JSONB veri kolonları veya **stored procedure** ler. Hoş iş süreçlerindeki kuralların **stored procedure**'lere yazılması pek de iyi bir fikir değildir ama yine de bazı durumlarda böyle bir şeyle karşılaşmak mümkün olabilir. Bu yüzden gerçek bir veritabanı kullanmak daha sağlıklı sonuçlar verecektir. Bir **Test Container** kullanarak testler sırasında geçici olarak ayağa kaldırılan gerçek bir veritabanı ile entegrasyon olabiliriz. Test Container teorik olarak arka planda bir **docker container** ayağa kaldırır. Dolayısıyla sisteminizde docker kurulu olduğunu varsayıyorum. Bizim senaryomuzda ben **Postgresql** kullandığım için **Testcontainers.PostgreSql** isimli **nuget** paketini kullanarak devam edeceğim. Şimdi test projesine aşağıdaki kod içeriğine sahip olan **WebApplicationFactory** türevini ekleyelim.
+Son entegrasyon testlerinde **in-memory** veritabanı kullanarak ilerledik ancak kurumsal çaptaki çözümlerde genellikle **Test Container**' lar tercih ediliyor. Bunun en büyük sebebi **in-memory** veritabanı rolünü üstlenen enstrümanın aslında gerçekten bir veritabanı olmamasıdır. Zira SQL'e veye PostgreSQL'e özgü birçok özellik desteklenmez. Misal JSONB veri kolonları veya **stored procedure** ler. Hoş iş süreçlerindeki kuralların **stored procedure**'lere yazılması pek de iyi bir fikir değildir ama yine de bazı durumlarda böyle bir şeyle karşılaşmak mümkün olabilir. Bu yüzden gerçek bir veritabanı kullanmak daha sağlıklı sonuçlar verecektir. Bir **Test Container** kullanarak testler sırasında geçici olarak ayağa kaldırılan gerçek bir veritabanı ile entegrasyon olabiliriz. Test Container teorik olarak arka planda bir **docker container** ayağa kaldırır. Dolayısıyla sisteminizde docker kurulu olduğunu varsayıyorum. Bizim senaryomuzda ben **Postgresql** kullandığım için **Testcontainers.PostgreSql** isimli [nuget paketini](https://www.nuget.org/packages/Testcontainers.PostgreSql) kullanarak devam edeceğim. Şimdi test projesine aşağıdaki kod içeriğine sahip olan **WebApplicationFactory** türevini ekleyelim.
 
 ```csharp
 using HexagonalAdventure.Adapters.Out.EF;
@@ -907,9 +907,9 @@ Sadece bu testi çalıştırarıp gerçekten de docker tarafında bir **containe
 
 Burada dikkat edilmesi gereken nokta söz konusu container'ın test tamamlanmadan önce başlatılması ve test bittikten sonra da kaldırılmasıdır. İlk ısınma sırasında *(warm-up diyelim)* testin süresi biraz uzayabilir zira container'ın ayağa kalkması ve veritabanının hazır hale gelmesi zaman alabilir. Ancak kullanmak istediğimiz veritabanı özellikleri düşünülürse bu maliyete değebilir.
 
-### Mimari Uygunluk Testleri
+### 12. Mimari Uygunluk Testleri
 
-Pek çok mimari yaklaşım bileşener arası bağımlılıkların ve izolasyonların doğru yönetilmesi konusunda hassastır. Örneğin bu çalışmada ele aldığımız **hexagonal** mimaride uygulama domain'inin dış dünyaya olan bağımlılığını tamamen ortadan kaldırmak önemli bir prensiptir. Örneğin **domain** katmanında bir şekilde **entity framework** ile konuşmaya başladığımız an mimarinin temel prensiplerinden biri olan bağımsızlık ilkesini ihlal etmiş oluruz. Bu tür durumları tespit etmek için mimari uygunluk testleri yazılabilir. **Microsoft .Net** tarafından bakacak olursak bu kontrolü kolayca icra etmemizi sağlayan **NetArchTest.Rules** isimli bir nuget paketi vardır. Mimari testleri ayrı bir projede ele alalım ve bu amaçla **HexagonalAdventure.Architecture.Tests** isimli yeni bir test projesi oluşturarak başlayalım. Projeye **NetArchTest.Rules** paketini ekledikten sonrada aşağıdaki gibi bir test sınıfı yazalım.
+Pek çok mimari yaklaşım bileşener arası bağımlılıkların ve izolasyonların doğru yönetilmesi konusunda hassastır. Örneğin bu çalışmada ele aldığımız **hexagonal** mimaride uygulama domain'inin dış dünyaya olan bağımlılığını tamamen ortadan kaldırmak önemli bir prensiptir. Örneğin **domain** katmanında bir şekilde **entity framework** ile konuşmaya başladığımız an mimarinin temel prensiplerinden biri olan bağımsızlık ilkesini ihlal etmiş oluruz. Bu tür durumları tespit etmek için mimari uygunluk testleri yazılabilir. **Microsoft .Net** tarafından bakacak olursak bu kontrolü kolayca icra etmemizi sağlayan **NetArchTest.Rules** isimli bir [nuget paketi](https://github.com/BenMorris/NetArchTest) vardır. Mimari testleri ayrı bir projede ele alalım ve bu amaçla **HexagonalAdventure.Architecture.Tests** isimli yeni bir test projesi oluşturarak başlayalım. Projeye **NetArchTest.Rules** paketini ekledikten sonrada aşağıdaki gibi bir test sınıfı yazalım.
 
 ```csharp
 using HexagonalAdventure.Application.Services;
