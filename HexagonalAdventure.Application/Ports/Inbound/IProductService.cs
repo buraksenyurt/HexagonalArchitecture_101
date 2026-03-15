@@ -2,5 +2,5 @@
 
 public interface IProductService
 {
-    Guid CreateProduct(string title, decimal price, string category, int stock);
+    Guid CreateProduct(string title, string productCode, decimal price, Guid categoryId, int stock);
 }
