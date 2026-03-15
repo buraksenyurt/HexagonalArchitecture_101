@@ -16,7 +16,7 @@ public class ProductServiceTests
 
         // Act
         var service = new ProductService(mockRepo.Object);
-        var actualGuid = service.CreateProduct("AyBiEm Laptop i7", 1500m, "Electronics", 10);
+        var actualGuid = service.CreateProduct("AyBiEm Laptop i7", "LAPTOP-1012", 1500m, Guid.NewGuid(), 10);
 
         // Assert
         Assert.NotEqual(Guid.Empty, actualGuid);
@@ -33,16 +33,18 @@ public class ProductServiceTests
         Product capturedProduct = null;
         mockRepo.Setup(r => r.AddProduct(It.IsAny<Product>()))
                 .Callback<Product>(p => capturedProduct = p);
+        var categoryId = Guid.NewGuid();
 
         // Act
         var service = new ProductService(mockRepo.Object);
-        var actualGuid = service.CreateProduct("AyBiEm Laptop i7", 1500m, "Electronics", 10);
+        var actualGuid = service.CreateProduct("AyBiEm Laptop i7", "LAPTOP-1012", 1500m, categoryId, 10);
 
         // Assert
         Assert.NotNull(capturedProduct);
         Assert.Equal("AyBiEm Laptop i7", capturedProduct.Title);
+        Assert.Equal("LAPTOP-1012", capturedProduct.Code.Value);
         Assert.Equal(1500m, capturedProduct.ListPrice);
-        Assert.Equal("Electronics", capturedProduct.Category);
+        Assert.Equal(categoryId, capturedProduct.CategoryId);
         Assert.Equal(10, capturedProduct.StockQuantity);
     }
 
@@ -56,7 +58,7 @@ public class ProductServiceTests
         var service = new ProductService(mockRepo.Object);
 
         // Assert
-        Assert.Throws<ArgumentException>(() => service.CreateProduct("", 1500m, "Electronics", 10));
+        Assert.Throws<ArgumentException>(() => service.CreateProduct("", "LAPTOP-1023", 1500m, Guid.NewGuid(), 10));
     }
 
     [Fact]
@@ -67,7 +69,7 @@ public class ProductServiceTests
         var service = new ProductService(mockRepo.Object);
 
         //Act & Assert
-        var exception = Assert.Throws<ArgumentException>(() => service.CreateProduct("AyBiEm Laptop i7", 1500m, "Electronics", -5));
+        var exception = Assert.Throws<ArgumentException>(() => service.CreateProduct("AyBiEm Laptop i7", "LAPTOP-1023", 1500m, Guid.NewGuid(), -5));
 
         //Verify
         mockRepo.Verify(r => r.AddProduct(It.IsAny<Product>()), Times.Never);

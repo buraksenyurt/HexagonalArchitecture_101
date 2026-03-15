@@ -13,9 +13,14 @@ public class ProductsController(IProductService productService)
     [HttpPost]
     public IActionResult Create([FromBody] CreateProductRequest request)
     {
-        var productId = _productService.CreateProduct(request.Title, request.Price, request.Category, request.Stock);
+        var productId = _productService.CreateProduct(
+            request.Title
+            , request.ProductCode
+            , request.Price
+            , request.CategoryId
+            , request.Stock);
         return Ok(new { Id = productId });
     }
 }
 
-public record CreateProductRequest(string Title, decimal Price, string Category, int Stock);
+public record CreateProductRequest(string Title, string ProductCode, decimal Price, Guid CategoryId, int Stock);

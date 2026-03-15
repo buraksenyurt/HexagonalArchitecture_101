@@ -17,7 +17,9 @@ public class EFProductRepositoryTests
         using var context = new DeppoDbContext(options);
         var repository = new EfProductRepository(context);
         var productId = Guid.NewGuid();
-        var productToSave = new Product(productId, "Learning the Hexagonal Architecture", 29.99m, "Books", 2);
+        var productCode = new ProductCode("BOOK-001");
+        var categoryId = Guid.NewGuid();
+        var productToSave = new Product(productId, productCode, "Learning the Hexagonal Architecture", 29.99m, categoryId, 2);
 
         // Act
         repository.AddProduct(productToSave);
@@ -26,9 +28,10 @@ public class EFProductRepositoryTests
         var retrievedProduct = repository.GetById(productId);
         Assert.NotNull(retrievedProduct);
         Assert.Equal(productId, retrievedProduct.Id);
+        Assert.Equal(productCode, retrievedProduct.Code);
         Assert.Equal("Learning the Hexagonal Architecture", retrievedProduct.Title);
         Assert.Equal(29.99m, retrievedProduct.ListPrice);
-        Assert.Equal("Books", retrievedProduct.Category);
+        Assert.Equal(categoryId, retrievedProduct.CategoryId);
         Assert.Equal(2, retrievedProduct.StockQuantity);
     }
 }

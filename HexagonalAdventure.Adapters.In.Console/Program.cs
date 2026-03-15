@@ -17,14 +17,14 @@ string title = Console.ReadLine();
 Console.Write("Price: ");
 decimal price = decimal.Parse(Console.ReadLine());
 
-Console.Write("Category: ");
-string category = Console.ReadLine();
+Console.Write("Product Code: ");
+string productCode = Console.ReadLine();
 
 Console.Write("Stock: ");
 int stock = int.Parse(Console.ReadLine());
 
 var productService = serviceProvider.GetRequiredService<IProductService>();
-var newProductId = productService.CreateProduct(title, price, category, stock);
+var newProductId = productService.CreateProduct(title, productCode, price, Guid.NewGuid(), stock);
 
 Console.WriteLine("Product created with ID: " + newProductId);
 Console.ReadLine();

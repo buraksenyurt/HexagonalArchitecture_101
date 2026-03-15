@@ -39,7 +39,7 @@ public class ProductControllerTestsWithContainers(WebApplicationFactory<Program>
                 });
             });
         }).CreateClient();
-        var request = new CreateProductRequest("Pragmatic Programmer", 42.99m, "Books", 4);
+        var request = new CreateProductRequest("Pragmatic Programmer", "BOOK-1203", 42.99m, Guid.NewGuid(), 4);
 
         // Act
         var response = await client.PostAsJsonAsync("/api/products", request); // POST isteği gönderilir ve yanıt alınır.

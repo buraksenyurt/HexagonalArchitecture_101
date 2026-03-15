@@ -14,7 +14,7 @@ public class ProductControllerTests(PostgresWebApplicationFactory factory)
     {
         // Arrange
         var client = factory.CreateClient();
-        var request = new CreateProductRequest("Pragmatic Programmer", 42.99m, "Books", 4);
+        var request = new CreateProductRequest("Pragmatic Programmer", "BOOK-1234", 42.99m, Guid.NewGuid(), 4);
 
         // Act
         var response = await client.PostAsJsonAsync("/api/products", request);
