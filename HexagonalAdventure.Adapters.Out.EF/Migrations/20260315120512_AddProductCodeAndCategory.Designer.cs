@@ -3,6 +3,7 @@ using System;
 using HexagonalAdventure.Adapters.Out.EF;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HexagonalAdventure.Adapters.Out.EF.Migrations
 {
     [DbContext(typeof(DeppoDbContext))]
-    partial class DeppoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260315120512_AddProductCodeAndCategory")]
+    partial class AddProductCodeAndCategory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
