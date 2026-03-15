@@ -21,6 +21,7 @@ Hexagonal yazılım mimarisinin prensiplerini basit senaryolar üzerinden uygula
     - [11. TestContainer ile Entegrasyon Testleri](#11-testcontainer-ile-entegrasyon-testleri)
     - [12. Mimari Uygunluk Testleri](#12-mimari-uygunluk-testleri)
   - [Genel Görünüm](#genel-görünüm)
+  - [Yeni Entity ve Value Object Eklenmesi ve EF Migration Sorunları](#yeni-entity-ve-value-object-eklenmesi-ve-ef-migration-sorunları)
 
 ## Mimari Hakkında Genel Bilgiler
 
@@ -430,7 +431,6 @@ dotnet tool update --global dotnet-ef
 
 # Migration planının hazırlanması
 dotnet ef migrations add InitialCreate --project HexagonalAdventure.Adapters.Out.EF --startup-project HexagonalAdventure.Adapters.In.WebApi
-## Yukarıdaki komut için WebApi projesinin çalışıyor olması lazım
 
 # Migration planının işletilmesi
 dotnet ef database update --project HexagonalAdventure.Adapters.Out.EF --startup-project HexagonalAdventure.Adapters.In.WebApi
@@ -969,3 +969,61 @@ Güncel olarak geldiğimiz noktada projemizdeki tüm testlerin başarılı bir �
 Solution içeriğinde birçok proje ve harici **nuget** bağımlılıkları var. Gelinen noktada neler olduğunu kabaca aşağıdaki diagramda olduğu gibi özetleyebiliriz.
 
 ![General Overview](./images/GeneralOverview.png)
+
+## Yeni Entity ve Value Object Eklenmesi ve EF Migration Sorunları
+
+Eğer DDD *(Domain Driven Design)* prensiplerine uygun veya yakın bir şekilde ilerlemek istiyorum. Tabii 101 çalışmasının başında sadece bir Entity nesnesi ile hareket ettik, Product. DDD'ye göre Entity'ler bir ID ile benzersiz şekilde kimliklendirilen nesnelerdir. Değişebilirler ve genellikle iş kurallarını içerirler. Diğer yandan Value Object'ler ise kimlik taşımazlar, değişmezler ve genellikle bir kavramı veya değeri temsil ederler.
+
+Buna göre ilk aklıma gelen ürünlere bir kod vermek oldu. **ProductCode** isimli bir **Value Object** ekledim ve hatta ürünleri belli kategoriler altında toplarken de bunu **Category** isimli bir **Entity** olarak ele almak istedim. Tabii burada ortaya bir **EF Migration** problemi de çıktı. Test amaçlı eklenmiş veriler olduğundan, ürün ve kategori arasındaki ilişkinin tanımlanış biçimi *(DeppoDbContext'e bakmak lazım)* bir probleme neden oldu.s
+
+```csharp
+using HexagonalAdventure.Domain;
+using Microsoft.EntityFrameworkCore;
+
+namespace HexagonalAdventure.Adapters.Out.EF;
+
+public class DeppoDbContext(DbContextOptions<DeppoDbContext> options)
+    : DbContext(options)
+{
+    public DbSet<Product> Products { get; set; }
+    public DbSet<Category> Categories { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Product>(entity =>
+        {
+            entity.HasKey(p => p.Id);
+
+            entity.Property(p => p.Code)
+                .HasConversion(
+                    v => v.Value, // ProductCode'u string'e dönüştürme
+                    v => new ProductCode(v)) // string'i ProductCode'a dönüştürme
+                .IsRequired()
+                .HasMaxLength(20);
+
+            entity.HasOne<Category>()
+                .WithMany()
+                .HasForeignKey(p => p.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict); // Kategori silindiğinde ürünlerin silinmemesi için Restrict kullanıyoruz
+        });
+
+        modelBuilder.Entity<Category>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.Property(c => c.Name).IsRequired().HasMaxLength(50);
+        });
+    }
+}
+```
+
+Henüz işin başında olduğum için var olan veritabanını silip yeni bir migration planı ile ilerlemek mümkün. Bunun için aşağıdaki terminal komutları ile hareket ettim.
+
+```bash
+dotnet ef database drop --project HexagonalAdventure.Adapters.Out.EF --startup-project HexagonalAdventure.Adapters.In.WebApi
+dotnet ef migrations add AddProductCodeAndCategory --project HexagonalAdventure.Adapters.Out.EF --startup-project HexagonalAdventure.Adapters.In.WebApi
+dotnet ef database update --project HexagonalAdventure.Adapters.Out.EF --startup-project HexagonalAdventure.Adapters.In.WebApi
+```
+
+Ancak burada önemli bir soruyu ortaya koymak lazım. Artık üretim ortamına kadar ilerlemiş bir kurguda bu çözüm mantıklı mı? Böyle bir durumda **EF Migration** dosyasında **Up** metoduna müdahale etmemiz gerekecekti. Örneğin gerçekten varsayılan bir kategori ekleyip bunu product tablosundaki CategoryId alanı için varsayılan değer olarak belirlememiz gerekebilirdi. Bu vakayı buna benzer başka bir durum oluşturduktan sonra ele alacağım.
