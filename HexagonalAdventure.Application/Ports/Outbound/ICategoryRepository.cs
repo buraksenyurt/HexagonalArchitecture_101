@@ -5,4 +5,5 @@ namespace HexagonalAdventure.Application.Ports.Outbound;
 public interface ICategoryRepository
 {
     void AddCategory(Category category);
-}
+    Category GetById(Guid id);
+}                                   

@@ -18,6 +18,8 @@ builder.Services.AddDbContext<DeppoDbContext>(options =>
 // EF Core kullanan yeni outbound port implementasyonu
 builder.Services.AddScoped<IProductRepository, EfProductRepository>();
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<ICategoryRepository, EfCategoryRepository>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
 
 builder.Services.AddOpenApi();
 

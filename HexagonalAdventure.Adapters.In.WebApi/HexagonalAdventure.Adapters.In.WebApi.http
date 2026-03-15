@@ -1,14 +1,27 @@
 @HexagonalAdventure.Adapters.In.WebApi_HostAddress = http://localhost:5144
 
+### Hexagonal Adventure Web API Testing
+
+### Create a category with valid data
+
+POST {{HexagonalAdventure.Adapters.In.WebApi_HostAddress}}/api/categories
+Content-Type: application/json
+Accept: application/json
+
+{  
+  "name": "Book"
+}
+
+### Create a product with valid data
+
 POST {{HexagonalAdventure.Adapters.In.WebApi_HostAddress}}/api/products
 Content-Type: application/json
 Accept: application/json
 
 {  
   "title": "Learning OCAML",
-  "category": "Book",
+  "productCode": "BOOK-001",
+  "categoryId": {{$guid}} ,
   "price": 19.99,
   "stock": 10
 }
-
-###
