@@ -1,7 +1,10 @@
 ﻿using HexagonalAdventure.Adapters.In.WebApi.Controllers;
 using HexagonalAdventure.Adapters.Out.EF;
+using HexagonalAdventure.Application.Events;
 using HexagonalAdventure.Domain;
+using HexagonalAdventure.Domain.Events;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -16,9 +19,24 @@ public class ProductControllerTests(PostgresWebApplicationFactory factory)
     public async Task CreateProduct_WhenUsingContainer_ShouldReturn200OkWithProductId()
     {
         // Arrange
+        var mockDispatcher = new Mock<IEventDispatcher>();
+        mockDispatcher.Setup(d=> d.DispatchAsync(It.IsAny<IDomainEvent>())).Returns(Task.CompletedTask);
+        var client = factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IEventDispatcher));
+                if (descriptor != null)
+                {
+                    services.Remove(descriptor);
+                }
+
+                services.AddSingleton(mockDispatcher.Object);
+            });
+        }).CreateClient();
+
         var categoryId = Guid.NewGuid();
-        
-        // First, create a category in the database to satisfy foreign key constraint
+
         using (var scope = factory.Services.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<DeppoDbContext>();
@@ -27,7 +45,7 @@ public class ProductControllerTests(PostgresWebApplicationFactory factory)
             dbContext.SaveChanges();
         }
         
-        var client = factory.CreateClient();
+        //var client = factory.CreateClient();
         var request = new CreateProductRequest("Pragmatic Programmer", "BOOK-1234", 42.99m, categoryId, 4);
 
         // Act
@@ -38,5 +56,11 @@ public class ProductControllerTests(PostgresWebApplicationFactory factory)
         var responseData = await response.Content.ReadFromJsonAsync<CreateProductResponse>();
         Assert.NotNull(responseData);
         Assert.NotEqual(Guid.Empty, responseData.Id);
+
+        // Verify
+        mockDispatcher.Verify(
+            d => d.DispatchAsync(It.IsAny<ProductCreatedEvent>()),
+            Times.Once,
+            "Event fired when the product created succesfully!");
     }
 }

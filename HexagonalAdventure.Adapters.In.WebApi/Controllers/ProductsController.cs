@@ -11,9 +11,9 @@ public class ProductsController(IProductService productService)
     private readonly IProductService _productService = productService;
 
     [HttpPost]
-    public IActionResult Create([FromBody] CreateProductRequest request)
+    public async Task<IActionResult> Create([FromBody] CreateProductRequest request)
     {
-        var productId = _productService.CreateProduct(
+        var productId = await _productService.CreateProduct(
             request.Title
             , request.ProductCode
             , request.Price

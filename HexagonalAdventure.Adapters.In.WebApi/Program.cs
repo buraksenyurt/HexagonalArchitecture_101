@@ -1,5 +1,6 @@
 using HexagonalAdventure.Adapters.Out.EF;
 // using HexagonalAdventure.Adapters.Out.InMemory;
+using HexagonalAdventure.Application.Events;
 using HexagonalAdventure.Application.Ports.Inbound;
 using HexagonalAdventure.Application.Ports.Outbound;
 using HexagonalAdventure.Application.Services;
@@ -17,6 +18,7 @@ builder.Services.AddDbContext<DeppoDbContext>(options =>
 
 // EF Core kullanan yeni outbound port implementasyonu
 builder.Services.AddScoped<IProductRepository, EfProductRepository>();
+builder.Services.AddScoped<IEventDispatcher, EventDispatcher>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryRepository, EfCategoryRepository>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();

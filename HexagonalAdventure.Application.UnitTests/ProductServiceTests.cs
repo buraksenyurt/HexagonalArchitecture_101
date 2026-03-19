@@ -4,29 +4,33 @@ using Moq;
 using HexagonalAdventure.Application.Ports.Outbound;
 using HexagonalAdventure.Application.Services;
 using HexagonalAdventure.Domain;
+using HexagonalAdventure.Application.Events;
+using HexagonalAdventure.Domain.Events;
 
 public class ProductServiceTests
 {
     [Fact]
-    public void CreateProduct_ShouldReturnValidGuid()
+    public async Task CreateProduct_ShouldReturnValidGuid()
     {
         // Arange
         var mockRepo = new Mock<IProductRepository>();
-        mockRepo.Setup(r => r.AddProduct(It.IsAny<Domain.Product>()));
+        mockRepo.Setup(r => r.AddProduct(It.IsAny<Product>()));
+        var mockEventDispatcher = new Mock<IEventDispatcher>();
 
         // Act
-        var service = new ProductService(mockRepo.Object);
-        var actualGuid = service.CreateProduct("AyBiEm Laptop i7", "LAPTOP-1012", 1500m, Guid.NewGuid(), 10);
+        var service = new ProductService(mockRepo.Object, mockEventDispatcher.Object);
+        var actualGuid = await service.CreateProduct("AyBiEm Laptop i7", "LAPTOP-1012", 1500m, Guid.NewGuid(), 10);
 
         // Assert
         Assert.NotEqual(Guid.Empty, actualGuid);
 
         // Verify (Gerçekten de dış bağımlılıktaki AddProduct metodunun çağrıldığını doğrulamak için)
-        mockRepo.Verify(r => r.AddProduct(It.IsAny<Domain.Product>()), Times.Once);
+        mockRepo.Verify(r => r.AddProduct(It.IsAny<Product>()), Times.Once);
+        mockEventDispatcher.Verify(e => e.DispatchAsync(It.IsAny<ProductCreatedEvent>()), Times.Once);
     }
 
     [Fact]
-    public void CreateProduct_ShouldPassCorrectDataToRepository()
+    public async Task CreateProduct_ShouldPassCorrectDataToRepository()
     {
         // Arange
         var mockRepo = new Mock<IProductRepository>();
@@ -34,10 +38,11 @@ public class ProductServiceTests
         mockRepo.Setup(r => r.AddProduct(It.IsAny<Product>()))
                 .Callback<Product>(p => capturedProduct = p);
         var categoryId = Guid.NewGuid();
+        var mockEventDispatcher = new Mock<IEventDispatcher>();
 
         // Act
-        var service = new ProductService(mockRepo.Object);
-        var actualGuid = service.CreateProduct("AyBiEm Laptop i7", "LAPTOP-1012", 1500m, categoryId, 10);
+        var service = new ProductService(mockRepo.Object, mockEventDispatcher.Object);
+        var actualGuid = await service.CreateProduct("AyBiEm Laptop i7", "LAPTOP-1012", 1500m, categoryId, 10);
 
         // Assert
         Assert.NotNull(capturedProduct);
@@ -46,32 +51,49 @@ public class ProductServiceTests
         Assert.Equal(1500m, capturedProduct.ListPrice);
         Assert.Equal(categoryId, capturedProduct.CategoryId);
         Assert.Equal(10, capturedProduct.StockQuantity);
+
+        // Verify
+        mockEventDispatcher.Verify(e => e.DispatchAsync(It.IsAny<ProductCreatedEvent>()), Times.Once);
     }
 
     [Fact]
-    public void CreateProduct_WhenTitleIsEmpty_ShouldThrowException()
+    public async Task CreateProduct_WhenTitleIsEmpty_ShouldThrowException()
     {
         // Arange
         var mockRepo = new Mock<IProductRepository>();
+        var mockEventDispatcher = new Mock<IEventDispatcher>();
 
         // Act
-        var service = new ProductService(mockRepo.Object);
+        var service = new ProductService(mockRepo.Object, mockEventDispatcher.Object);
+        var exception = await Assert.ThrowsAsync<ArgumentException>(
+            () => service.CreateProduct("", "LAPTOP-1023", 1500m, Guid.NewGuid(), 10)
+        );
 
         // Assert
-        Assert.Throws<ArgumentException>(() => service.CreateProduct("", "LAPTOP-1023", 1500m, Guid.NewGuid(), 10));
+        await Assert.ThrowsAnyAsync<ArgumentException>(
+            () => service.CreateProduct("", "LAPTOP-1023", 1500m, Guid.NewGuid(), 10)
+        );
+        Assert.Equal("Title cannot be empty", exception.Message);
+
+        // Verify
+        mockEventDispatcher.Verify(e => e.DispatchAsync(It.IsAny<IDomainEvent>()), Times.Never);
     }
 
     [Fact]
-    public void CreateProduct_WithNegativeStockQuantity_ShouldThrowException()
+    public async Task CreateProduct_WithNegativeStockQuantity_ShouldThrowException()
     {
         //Arange
         var mockRepo = new Mock<IProductRepository>();
-        var service = new ProductService(mockRepo.Object);
+        var mockEventDispatcher = new Mock<IEventDispatcher>();
+        var service = new ProductService(mockRepo.Object, mockEventDispatcher.Object);
 
         //Act & Assert
-        var exception = Assert.Throws<ArgumentException>(() => service.CreateProduct("AyBiEm Laptop i7", "LAPTOP-1023", 1500m, Guid.NewGuid(), -5));
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => service.CreateProduct("AyBiEm Laptop i7", "LAPTOP-1012", 1500m, Guid.NewGuid(), -5)
+        );
 
         //Verify
         mockRepo.Verify(r => r.AddProduct(It.IsAny<Product>()), Times.Never);
+        mockEventDispatcher.Verify(e => e.DispatchAsync(It.IsAny<IDomainEvent>()), Times.Never);
     }
 }
