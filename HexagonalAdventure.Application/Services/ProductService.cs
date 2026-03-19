@@ -1,10 +1,11 @@
-﻿using HexagonalAdventure.Application.Ports.Inbound;
+﻿using HexagonalAdventure.Application.Events;
+using HexagonalAdventure.Application.Ports.Inbound;
 using HexagonalAdventure.Application.Ports.Outbound;
 using HexagonalAdventure.Domain;
 
 namespace HexagonalAdventure.Application.Services;
 
-public class ProductService(IProductRepository productRepository)
+public class ProductService(IProductRepository productRepository, IEventDispatcher eventDispatcher)
     : IProductService
 {
     private readonly IProductRepository _productRepository = productRepository;
@@ -16,13 +17,20 @@ public class ProductService(IProductRepository productRepository)
         ProductCode gibi bir value object'i tanımaması ve doğrudan string gibi primitive bir tiple çalışmasıdır.
         Zira Inbound Adapter'ların Domain katmanındaki nesneleri tanımaması ve doğrudan primitive tiplerle çalışması beklenir.
     */
-    public Guid CreateProduct(string title, string productCode, decimal price, Guid categoryId, int stock)
+    public async Task<Guid> CreateProduct(string title, string productCode, decimal price, Guid categoryId, int stock)
     {
         var code = new ProductCode(productCode); // ProductCode içindeki iş luralları da çalışır ve bir hata varsa kirli daha oluşmaz zira Repository çalıştırılmaz.
         // Domain nesnesi oluşturulur ve orada tanımlı iş kuralları da yürütülür.
         var product = new Product(Guid.NewGuid(), code, title, price, categoryId, stock);
         // Outbound port olarak tanımladığımız arayüz üzerinden ürün ekleme işlevi çağırılır
         _productRepository.AddProduct(product);
+
+        // Kayıtlı domain olaylarını tetikleyelim
+        foreach(var domainEvent in product.DomainEvents)
+        {
+            await eventDispatcher.Dispatch(domainEvent);
+        }
+
         return product.Id;
     }
 }
