@@ -9,6 +9,7 @@ public class ProductService(IProductRepository productRepository, IEventDispatch
     : IProductService
 {
     private readonly IProductRepository _productRepository = productRepository;
+    private readonly IEventDispatcher _eventDispatcher = eventDispatcher;
 
     /*
         CreateProduct metodu bir ürün oluşturmak için gerekli bilgileri alır.
@@ -28,8 +29,11 @@ public class ProductService(IProductRepository productRepository, IEventDispatch
         // Kayıtlı domain olaylarını tetikleyelim
         foreach(var domainEvent in product.DomainEvents)
         {
-            await eventDispatcher.Dispatch(domainEvent);
+            // DispatcAsync asenkron bir metot olduğundan CreateProduct'ın dönüşü de değiştirilmelidir.
+            // IProductService'de buna göre değiştirilmiştir.
+            await _eventDispatcher.DispatchAsync(domainEvent);
         }
+        product.ClearDomainEvents(); // Olaylar tetiklendikten sonra Entity nesnesine kayıtlı olanları temizliyoruz.
 
         return product.Id;
     }

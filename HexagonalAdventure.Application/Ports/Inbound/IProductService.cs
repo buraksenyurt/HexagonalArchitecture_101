@@ -2,5 +2,5 @@
 
 public interface IProductService
 {
-    Guid CreateProduct(string title, string productCode, decimal price, Guid categoryId, int stock);
+    Task<Guid> CreateProduct(string title, string productCode, decimal price, Guid categoryId, int stock);
 }
