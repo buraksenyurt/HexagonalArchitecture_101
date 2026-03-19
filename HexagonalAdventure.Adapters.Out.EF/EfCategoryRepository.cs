@@ -12,6 +12,11 @@ public class EfCategoryRepository(DeppoDbContext deppoDbContext)
         deppoDbContext.SaveChanges();
     }
 
+    public IList<Category> GetAll()
+    {
+        return [.. deppoDbContext.Categories];
+    }
+
     public Category GetById(Guid id)
     {
         return deppoDbContext.Categories.FirstOrDefault(c => c.Id == id);

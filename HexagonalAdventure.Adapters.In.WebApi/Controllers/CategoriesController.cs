@@ -16,6 +16,12 @@ public class CategoriesController(ICategoryService categoryService)
         var categoryId = _categoryService.CreateCategory(request.Name);
         return Ok(new { Id = categoryId });
     }
+
+    [HttpGet]
+    public IActionResult GetAll()
+    {
+        return Ok(_categoryService.GetAllCategories());
+    }
 }
 
 public record CreateCategoryRequest(string Name);

@@ -6,4 +6,5 @@ public interface ICategoryRepository
 {
     void AddCategory(Category category);
     Category GetById(Guid id);
+    IList<Category> GetAll();
 }                                   

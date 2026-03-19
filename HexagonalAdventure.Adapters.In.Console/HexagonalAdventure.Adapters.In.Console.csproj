@@ -9,9 +9,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.5" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\HexagonalAdventure.Adapters.Out.Email\HexagonalAdventure.Adapters.Out.Email.csproj" />
     <ProjectReference Include="..\HexagonalAdventure.Adapters.Out.InMemory\HexagonalAdventure.Adapters.Out.InMemory.csproj" />
     <ProjectReference Include="..\HexagonalAdventure.Application\HexagonalAdventure.Application.csproj" />
   </ItemGroup>

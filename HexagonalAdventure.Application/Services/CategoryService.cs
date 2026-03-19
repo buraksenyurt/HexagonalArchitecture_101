@@ -13,4 +13,9 @@ public class CategoryService(ICategoryRepository categoryRepository)
         categoryRepository.AddCategory(category);
         return category.Id;
     }
+
+    public List<Category> GetAllCategories()
+    {
+        return [.. categoryRepository.GetAll().OrderBy(c => c.Name)];
+    }
 }

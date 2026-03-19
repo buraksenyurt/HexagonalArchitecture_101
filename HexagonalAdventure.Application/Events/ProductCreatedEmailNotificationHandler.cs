@@ -17,7 +17,7 @@ public class ProductCreatedEmailNotificationHandler(IEmailService emailService)
     {
         await emailService.SendEmailAsync(
             to: "salesops@hexagonaladventure.com",
-            subject: "New Product Created: {domainEvent.Title}",
+            subject: $"New Product Created: {domainEvent.Title}",
             body: $"A new product has been created with the following details:\n\n" +
                   $"Product ID: {domainEvent.ProductId}\n" +
                   $"Product Code: {domainEvent.ProductCode}\n" +
