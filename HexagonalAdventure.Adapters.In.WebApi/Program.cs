@@ -1,9 +1,12 @@
 using HexagonalAdventure.Adapters.Out.EF;
+using HexagonalAdventure.Adapters.Out.Email;
+
 // using HexagonalAdventure.Adapters.Out.InMemory;
 using HexagonalAdventure.Application.Events;
 using HexagonalAdventure.Application.Ports.Inbound;
 using HexagonalAdventure.Application.Ports.Outbound;
 using HexagonalAdventure.Application.Services;
+using HexagonalAdventure.Domain.Events;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,12 +19,14 @@ builder.Services.AddDbContext<DeppoDbContext>(options =>
 // Dependency Injection tanımlamaları
 // builder.Services.AddSingleton<IProductRepository, InMemoryProdutRepository>(); // Tüm uygulama boyunca tek bir instance kullanılır
 
-// EF Core kullanan yeni outbound port implementasyonu
+// Gerekli bileşene bağımlılıklarını DI servislerine ekliyoruz
 builder.Services.AddScoped<IProductRepository, EfProductRepository>();
 builder.Services.AddScoped<IEventDispatcher, EventDispatcher>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryRepository, EfCategoryRepository>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddTransient<IEmailService, SmtpEmailAdapter>();
+builder.Services.AddTransient<IDomainEventHandler<ProductCreatedEvent>, ProductCreatedEmailNotificationHandler>();
 
 builder.Services.AddOpenApi();
 
