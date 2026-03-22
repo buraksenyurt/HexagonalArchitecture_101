@@ -5,6 +5,7 @@
     <Project Path="HexagonalAdventure.Adapters.Out.EF/HexagonalAdventure.Adapters.Out.EF.csproj" Id="eaf2ce3d-d86b-4478-aa97-b0d7f6dcdc25" />
     <Project Path="HexagonalAdventure.Adapters.Out.Email/HexagonalAdventure.Adapters.Out.Email.csproj" Id="af1a5b50-4429-47f9-aa38-928daa37e1f4" />
     <Project Path="HexagonalAdventure.Adapters.Out.InMemory/HexagonalAdventure.Adapters.Out.InMemory.csproj" Id="f6fba077-969b-403e-9fe1-13448c4aa8d5" />
+    <Project Path="HexagonalAdventure.Adapters.Out.Redis/HexagonalAdventure.Adapters.Out.Redis.csproj" Id="048152f7-d840-41e2-a0f9-d6a6aa982644" />
   </Folder>
   <Folder Name="/Application/">
     <Project Path="HexagonalAdventure.Application/HexagonalAdventure.Application.csproj" Id="20236bdd-61df-491c-8bc2-59a76c6cec63" />

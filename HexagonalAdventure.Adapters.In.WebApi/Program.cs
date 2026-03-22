@@ -8,6 +8,7 @@ using HexagonalAdventure.Application.Ports.Outbound;
 using HexagonalAdventure.Application.Services;
 using HexagonalAdventure.Domain.Events;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
@@ -30,6 +31,9 @@ builder.Services.AddScoped<ICategoryRepository, EfCategoryRepository>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddTransient<IEmailService, SmtpEmailAdapter>();
 builder.Services.AddTransient<IDomainEventHandler<ProductCreatedEvent>, ProductCreatedEmailNotificationHandler>();
+builder.Services.AddSingleton<IConnectionMultiplexer>(
+    sp => ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("RedisConnectionString"))
+   );
 
 builder.Services.AddOpenApi();
 
