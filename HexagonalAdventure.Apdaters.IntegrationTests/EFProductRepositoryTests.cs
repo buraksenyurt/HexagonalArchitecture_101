@@ -7,7 +7,7 @@ namespace HexagonalAdventure.Apdaters.IntegrationTests;
 public class EFProductRepositoryTests
 {
     [Fact]
-    public void Add_ShouldSaveProductToDatabase_And_GetById_ShouldReturnIt()
+    public async Task Add_ShouldSaveProductToDatabase_And_GetById_ShouldReturnIt()
     {
         // Arrange
         var options = new DbContextOptionsBuilder<DeppoDbContext>()
@@ -22,10 +22,10 @@ public class EFProductRepositoryTests
         var productToSave = new Product(productId, productCode, "Learning the Hexagonal Architecture", 29.99m, categoryId, 2);
 
         // Act
-        repository.AddProduct(productToSave);
+        await repository.AddProductAsync(productToSave);
 
         // Assert
-        var retrievedProduct = repository.GetById(productId);
+        var retrievedProduct = await repository.GetByIdAsync(productId);
         Assert.NotNull(retrievedProduct);
         Assert.Equal(productId, retrievedProduct.Id);
         Assert.Equal(productCode, retrievedProduct.Code);

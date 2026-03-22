@@ -25,3 +25,15 @@ Accept: application/json
   "price": 19.99,
   "stock": 10
 }
+
+### Increase stock of a product
+
+POST {{HexagonalAdventure.Adapters.In.WebApi_HostAddress}}/api/products/{{$guid}}/increase/stock
+Content-Type: application/json
+Accept: application/json
+{
+  "amount": 5
+}
+
+### Get product by id
+GET {{HexagonalAdventure.Adapters.In.WebApi_HostAddress}}/api/products/{{$guid}}

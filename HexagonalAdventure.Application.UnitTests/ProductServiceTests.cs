@@ -14,7 +14,7 @@ public class ProductServiceTests
     {
         // Arange
         var mockRepo = new Mock<IProductRepository>();
-        mockRepo.Setup(r => r.AddProduct(It.IsAny<Product>()));
+        mockRepo.Setup(r => r.AddProductAsync(It.IsAny<Product>()));
         var mockEventDispatcher = new Mock<IEventDispatcher>();
 
         // Act
@@ -25,7 +25,7 @@ public class ProductServiceTests
         Assert.NotEqual(Guid.Empty, actualGuid);
 
         // Verify (Gerçekten de dış bağımlılıktaki AddProduct metodunun çağrıldığını doğrulamak için)
-        mockRepo.Verify(r => r.AddProduct(It.IsAny<Product>()), Times.Once);
+        mockRepo.Verify(r => r.AddProductAsync(It.IsAny<Product>()), Times.Once);
         mockEventDispatcher.Verify(e => e.DispatchAsync(It.IsAny<ProductCreatedEvent>()), Times.Once);
     }
 
@@ -35,7 +35,7 @@ public class ProductServiceTests
         // Arange
         var mockRepo = new Mock<IProductRepository>();
         Product capturedProduct = null;
-        mockRepo.Setup(r => r.AddProduct(It.IsAny<Product>()))
+        mockRepo.Setup(r => r.AddProductAsync(It.IsAny<Product>()))
                 .Callback<Product>(p => capturedProduct = p);
         var categoryId = Guid.NewGuid();
         var mockEventDispatcher = new Mock<IEventDispatcher>();
@@ -93,7 +93,7 @@ public class ProductServiceTests
         );
 
         //Verify
-        mockRepo.Verify(r => r.AddProduct(It.IsAny<Product>()), Times.Never);
+        mockRepo.Verify(r => r.AddProductAsync(It.IsAny<Product>()), Times.Never);
         mockEventDispatcher.Verify(e => e.DispatchAsync(It.IsAny<IDomainEvent>()), Times.Never);
     }
 }

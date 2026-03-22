@@ -24,17 +24,40 @@ public class ProductService(IProductRepository productRepository, IEventDispatch
         // Domain nesnesi oluşturulur ve orada tanımlı iş kuralları da yürütülür.
         var product = new Product(Guid.NewGuid(), code, title, price, categoryId, stock);
         // Outbound port olarak tanımladığımız arayüz üzerinden ürün ekleme işlevi çağırılır
-        _productRepository.AddProduct(product);
+        await _productRepository.AddProductAsync(product);
 
-        // Kayıtlı domain olaylarını tetikleyelim
-        foreach(var domainEvent in product.DomainEvents)
+        var domainEvents = product.DomainEvents.ToList(); 
+        // iterasyon sırasında DomainEvents koleksiyonunda değişiklik olmaması için bir kopyaasını alıyoruz.
+        product.ClearDomainEvents(); // product nesnesi üzerindeki event listesini temizliyoruz,
+        // çünkü eventler tetiklendikten sonra tekrar tetiklenmemesi gerekir.
+        
+        // Burada da olayları dolaşıp tetikliyoruz.
+        foreach (var domainEvent in domainEvents)
         {
-            // DispatcAsync asenkron bir metot olduğundan CreateProduct'ın dönüşü de değiştirilmelidir.
-            // IProductService'de buna göre değiştirilmiştir.
             await _eventDispatcher.DispatchAsync(domainEvent);
         }
-        product.ClearDomainEvents(); // Olaylar tetiklendikten sonra Entity nesnesine kayıtlı olanları temizliyoruz.
 
         return product.Id;
+    }
+
+    public async Task IncreaseProductStock(Guid productId, int value)
+    {
+        var product = await _productRepository.GetByIdAsync(productId);
+        if (product == null) throw new KeyNotFoundException("Product not found with the specified ID");
+        product.IncreaseStock(value);
+        await _productRepository.UpdateProductAsync(product);
+
+        var domainEvents = product.DomainEvents.ToList();
+        product.ClearDomainEvents();
+        foreach(var domainEvent in domainEvents)
+        {
+            await _eventDispatcher.DispatchAsync(domainEvent);
+        }
+    }
+
+    public async Task<Product> GetProductById(Guid productId) {
+        var product = await _productRepository.GetByIdAsync(productId);
+        if (product == null) throw new KeyNotFoundException("Product not found with the specified ID");
+        return product;
     }
 }

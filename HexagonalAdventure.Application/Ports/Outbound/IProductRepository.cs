@@ -4,6 +4,7 @@ namespace HexagonalAdventure.Application.Ports.Outbound;
 
 public interface IProductRepository
 {
-    void AddProduct(Product product);
-    Product GetById(Guid id);
+    Task AddProductAsync(Product product);
+    Task<Product> GetByIdAsync(Guid id);
+    Task UpdateProductAsync(Product product);
 }
