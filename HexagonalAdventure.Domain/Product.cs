@@ -51,6 +51,7 @@ public class Product
         if (quantity <= 0) throw new ArgumentException("Quantity to increase must be greater than 0");
 
         StockQuantity += quantity;
+        AddDomainEvent(new ProductStockIncreasedEvent(Id, quantity));
     }
 
     public void DecreaseStock(int quantity)
@@ -59,6 +60,7 @@ public class Product
         if (StockQuantity - quantity < 0) throw new InvalidOperationException("Insufficient stock to decrease by the specified quantity");
 
         StockQuantity -= quantity;
+        AddDomainEvent(new ProductStockDecreasedEvent(Id, quantity));
     }
 
     // Bu entity'ye yeni bir domain event eklemek için kullanılan yardımcı metodumuz
